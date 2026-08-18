@@ -28,7 +28,8 @@ for i, v in enumerate(d["venues"]):
     time.sleep(0.06)
     if not ra: norev += 1; continue
     got = lot_of(ra)
-    if exp and got == exp: ok += 1; continue
+    kexp = lot_of(v.get("kjibun"))
+    if (exp and got == exp) or (kexp and got == kexp): ok += 1; continue
     # 지번 불일치 — 기대 지번 geocode와의 실거리로 판정
     g = geo_cache.get(f"송도동 {exp}") if exp else None
     if g:

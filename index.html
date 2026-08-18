@@ -200,6 +200,8 @@ $("#sort").onchange = e => { state.sort = e.target.value; render(); };
 $("#f-big").onchange = e => { state.big = e.target.checked; render(); };
 const areaCtl = document.getElementById("areaCtl");
 L.DomEvent.disableClickPropagation(areaCtl); L.DomEvent.disableScrollPropagation(areaCtl);
+{ const amax = Math.ceil(Math.max(...D.venues.map(v => v.area || 0)) / 10) * 10;
+  $("#areaRange").max = amax; }
 $("#areaRange").oninput = e => {
   state.minArea = +e.target.value;
   $("#areaVal").textContent = state.minArea ? `${state.minArea}㎡+` : "전체";
