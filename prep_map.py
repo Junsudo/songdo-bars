@@ -105,7 +105,6 @@ print(f"치킨 카테고리: 기준 통과 {chick_added}, 지정 포함 {forced}
 # ── 카테고리 분류 ──────────────────────────────────────────
 def classify(uptae, kakao_leaf, dc_cat, big_nonpub):
     t = " ".join(x for x in [uptae or "", kakao_leaf or "", dc_cat or ""] if x)
-    if big_nonpub: return "회식형 대형"
     if re.search(r"일본식주점|이자카야|사케", t): return "이자카야"
     if re.search(r"칵테일|와인|위스키|재즈|라운지|바$|하이볼|LP", t): return "바·라운지"
     if re.search(r"포장마차|포차|대포집|소주방|오뎅", t): return "포차·주점"
@@ -127,11 +126,10 @@ def geocode(jibun):
     return None
 
 venues = {}; geocoded = 0
-EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식"}
+EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식"}
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
-big = [r for r in songdo if (r["업태구분명"] in PUB_TYPES or r["관리번호"] in lic_dc or r["관리번호"] in lic_kakao) and area_of(r) >= 200 and r["업태구분명"] not in EXCLUDE_UPTAE]
-for r in {id(x): x for x in pubs + kakao_bars_lic + big}.values():
+for r in {id(x): x for x in pubs + kakao_bars_lic}.values():
     mid = r["관리번호"]
     kp = lic_kakao.get(mid); dp = lic_dc.get(mid)
     if kp: coords = {"lat": float(kp["y"]), "lng": float(kp["x"])}; src = "kakao"
@@ -140,7 +138,7 @@ for r in {id(x): x for x in pubs + kakao_bars_lic + big}.values():
         time.sleep(0.08)
     if not coords: continue
     leaf = (kp.get("category_name", "").split(" > ")[-1] if kp else "")
-    big_nonpub = r["업태구분명"] not in PUB_TYPES and area_of(r) >= 200 and not re.search(r"호프|주점|펍|바|맥주", (leaf or "") + (dp.get("category", "") if dp else ""))
+    big_nonpub = False
     venues[f"lic:{mid}"] = {
         "name": name_override.get(mid, r["사업장명"]), "cat": classify(r["업태구분명"], leaf, "", big_nonpub),
         "uptae": r["업태구분명"], "area": area_of(r) or None,
