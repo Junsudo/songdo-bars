@@ -107,15 +107,17 @@ for kp in kakao:
 # 더신더 케이스 보강: 비주점 업태(까페·기타·일식 등)로 등록된 진성 바 — 확인된 것만 명시 포함
 EXTRA_POI_NAMES = {"튜나펍", "고래맥주창고 송도점", "와인기대", "랍스터퍼블릭라운지", "제이라운지",
                    "홀리데이인인천송도 더라운지", "10.19갤러리&라운지", "데이롱카페 송도엑스포점 커피앤하이볼"}
-EXTRA_LIC_NORMS = {norm(x) for x in ["튜나펍(TUNA PUB)", "스낵얌 그로서리펍 인천송도점", "오라카이라운지",
-                                       "로비라운지 파노라마(송도센트럴파크호텔)", "스월링라운지",
+EXTRA_LIC_NORMS = {norm(x) for x in ["튜나펍(TUNA PUB)", "오라카이라운지",
+                                       "로비라운지 파노라마(송도센트럴파크호텔)",
                                        "10.19 Gallery&Lounge(10.19 갤러리 앤 라운지)",
                                        "데이롱 카페 송도엑스포점 커피앤하이볼",
-                                       # 경양식 등록 진성 바 (업태 제외 규칙보다 우선)
-                                       "앨리스 피맥", "앨리스피맥 송도아트포레점", "앨리스피맥",
+                                       # 경양식 등록 진성 바 (업태 제외 규칙보다 우선, 카카오 실재 확인분만)
+                                       "앨리스피맥 송도아트포레점", "앨리스피맥",
                                        "랍스터 퍼블릭 라운지", "와인기대", "제이라운지(J Lounge)",
-                                       "크라운호프 송도점", "다올앤펍 트리플스트리트점",
+                                       "크라운호프 송도점",
                                        "파르크 드 와인 Parc de wine", "더몰트하우스 송도센트럴파크점"]}
+# 카카오·웹 어디에도 실체가 없는 인허가 전용 이름 — 지도 제외 (다올앤펍 사건)
+EXTRA_DROP_LOTS = {("앨리스피맥", "30-2")}
 try: ce7 = json.load(open(f"{DATA}/kakao_ce7.json"))
 except Exception: ce7 = []
 _have = {k["id"] for k in kakao}
@@ -175,7 +177,8 @@ venues = {}; geocoded = 0; coord_fixes = []
 EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식"}
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
-extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS]  # 명시 목록은 업태 제외보다 우선
+extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS
+             and (norm(r["사업장명"]), lot_of(r["지번주소"])) not in EXTRA_DROP_LOTS]  # 명시 목록은 업태 제외보다 우선
 for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic}.values():
     if excluded_name(r["사업장명"]): continue
     mid = r["관리번호"]
