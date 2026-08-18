@@ -39,7 +39,14 @@ for r in songdo:
     lot = lot_of(r["지번주소"])
     if lot: by_lot[lot].append(r)
 
+ALIAS = {"또봉이통닭 인천송도AIT센터점": "브루엠"}  # 카카오 상호 → 인허가 사업장명 (실사 확인분)
+name_override = {}
+
 def match(nm, branch, addr):
+    if nm in ALIAS:
+        c = by_name.get(norm(ALIAS[nm]))
+        if c:
+            r = max(c, key=area_of); name_override[r["관리번호"]] = nm; return r
     full = norm(nm + (branch or "")); n = norm(nm); bn = base_name(nm)
     for key, table in ((full, by_name), (n, by_name), (bn, by_base)):
         if key and table.get(key): return max(table[key], key=area_of)
@@ -81,6 +88,20 @@ for kp in kakao:
     if r: lic_kakao.setdefault(r["관리번호"], kp)
     else: kakao_unmatched.append(kp)
 
+# 카카오 '치킨' 카테고리 — 인허가 면적 100㎡ 이상이면 포함, KAKAO_FORCE 상호는 미매칭이어도 포함
+fd6 = json.load(open(f"{DATA}/kakao_fd6_all.json"))
+kchick = [x for x in fd6 if "음식점 > 치킨" in x["category_name"] and "송도동" in (x.get("address_name") or "")]
+KAKAO_FORCE = ["또봉이"]
+chick_added = forced = 0
+for x in kchick:
+    r = match(x["place_name"], "", x.get("address_name"))
+    if r:
+        if r["업태구분명"] in PUB_TYPES or area_of(r) >= 100:
+            lic_kakao.setdefault(r["관리번호"], x); chick_added += 1
+    elif any(f in x["place_name"] for f in KAKAO_FORCE) and not is_closed(x["place_name"], x.get("address_name")):
+        kakao_unmatched.append(x); forced += 1
+print(f"치킨 카테고리: 기준 통과 {chick_added}, 지정 포함 {forced} (전체 {len(kchick)})")
+
 # ── 카테고리 분류 ──────────────────────────────────────────
 def classify(uptae, kakao_leaf, dc_cat, big_nonpub):
     t = " ".join(x for x in [uptae or "", kakao_leaf or "", dc_cat or ""] if x)
@@ -88,7 +109,7 @@ def classify(uptae, kakao_leaf, dc_cat, big_nonpub):
     if re.search(r"일본식주점|이자카야|사케", t): return "이자카야"
     if re.search(r"칵테일|와인|위스키|재즈|라운지|바$|하이볼|LP", t): return "바·라운지"
     if re.search(r"포장마차|포차|대포집|소주방|오뎅", t): return "포차·주점"
-    if re.search(r"호프|맥주|펍|치킨|브루|비어", t): return "호프·펍"
+    if re.search(r"호프|맥주|펍|치킨|통닭|브루|비어", t): return "호프·펍"
     if re.search(r"감성주점|술집", t): return "포차·주점"
     return "포차·주점"
 
@@ -106,9 +127,11 @@ def geocode(jibun):
     return None
 
 venues = {}; geocoded = 0
+EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식"}
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
-big = [r for r in songdo if (r["업태구분명"] in PUB_TYPES or r["관리번호"] in lic_dc or r["관리번호"] in lic_kakao) and area_of(r) >= 200]
-for r in {id(x): x for x in pubs + big}.values():
+kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
+big = [r for r in songdo if (r["업태구분명"] in PUB_TYPES or r["관리번호"] in lic_dc or r["관리번호"] in lic_kakao) and area_of(r) >= 200 and r["업태구분명"] not in EXCLUDE_UPTAE]
+for r in {id(x): x for x in pubs + kakao_bars_lic + big}.values():
     mid = r["관리번호"]
     kp = lic_kakao.get(mid); dp = lic_dc.get(mid)
     if kp: coords = {"lat": float(kp["y"]), "lng": float(kp["x"])}; src = "kakao"
@@ -119,7 +142,7 @@ for r in {id(x): x for x in pubs + big}.values():
     leaf = (kp.get("category_name", "").split(" > ")[-1] if kp else "")
     big_nonpub = r["업태구분명"] not in PUB_TYPES and area_of(r) >= 200 and not re.search(r"호프|주점|펍|바|맥주", (leaf or "") + (dp.get("category", "") if dp else ""))
     venues[f"lic:{mid}"] = {
-        "name": r["사업장명"], "cat": classify(r["업태구분명"], leaf, "", big_nonpub),
+        "name": name_override.get(mid, r["사업장명"]), "cat": classify(r["업태구분명"], leaf, "", big_nonpub),
         "uptae": r["업태구분명"], "area": area_of(r) or None,
         "phone": r["전화번호"] or (kp.get("phone") if kp else "") or "",
         "road": r["도로명주소"] or "", "jibun": r["지번주소"] or "",
@@ -144,5 +167,6 @@ from collections import Counter
 print(f"venues: {len(venues)} (geocoded {geocoded})")
 print(Counter(v["cat"] for v in venues.values()).most_common())
 print("licensed:", sum(1 for v in venues.values() if v["licensed"]), "/ unmatched:", sum(1 for v in venues.values() if not v["licensed"]))
+print("업태 분포:", Counter(v["uptae"] or "(미매칭)" for v in venues.values()).most_common())
 print(f"폐업 대장 매칭으로 제거: {len(dropped)}곳")
 for d in dropped: print("  -", d)
