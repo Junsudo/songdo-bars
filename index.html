@@ -55,6 +55,12 @@
   .pop-kv { color: var(--text-2); } .pop-kv b { color: var(--text-1); font-weight: 600; }
   .pop-links { margin-top: 7px; display: flex; gap: 10px; flex-wrap: wrap; }
   .pop-links a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 12.5px; }
+  #areaCtl { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 1000;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 7px;
+    display: flex; flex-direction: column; align-items: center; gap: 7px; box-shadow: 0 1px 6px rgba(0,0,0,.15); }
+  #areaCtl .lab { font-size: 11px; color: var(--text-2); text-align: center; line-height: 1.3; width: 52px; }
+  #areaCtl .lab b { color: var(--text-1); font-size: 12px; }
+  #areaRange { writing-mode: vertical-lr; direction: rtl; -webkit-appearance: slider-vertical; width: 22px; height: 170px; accent-color: var(--accent); }
   .ring-label { background: none; border: none; box-shadow: none; font-weight: 700; color: #444; font-size: 11px; text-shadow: 0 0 3px #fff, 0 0 3px #fff; white-space: nowrap; }
   @media (max-width: 760px) {
     body { flex-direction: column-reverse; }
@@ -89,7 +95,12 @@
   </div>
   <div id="list"></div>
 </div>
-<div id="map"></div>
+<div id="map">
+  <div id="areaCtl">
+    <div class="lab"><b id="areaVal">전체</b><br><span id="areaSeat">면적 필터</span></div>
+    <input id="areaRange" type="range" orient="vertical" min="0" max="400" step="10" value="0">
+  </div>
+</div>
 <script>
 const D = window.MAP_DATA;
 const CAT_COLOR = { "호프·펍": "#2a78d6", "이자카야": "#eb6834", "포차·주점": "#1baf7a", "바·라운지": "#e87ba4", "회식형 대형": "#4a3aa7" };
@@ -102,6 +113,27 @@ function hav(a, b) {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 D.venues.forEach(v => { v.dist = hav(D.igc, v); });
+// 같은 건물(≈11m 셀) 업소들을 링으로 펼쳐 핀이 포개지지 않게 함 — 표시 좌표(dlat/dlng)만 이동, 원좌표는 링크·거리 계산에 유지
+{
+  const cells = new Map();
+  D.venues.forEach(v => {
+    const k = v.lat.toFixed(4) + "," + v.lng.toFixed(4);
+    (cells.get(k) || cells.set(k, []).get(k)).push(v);
+  });
+  cells.forEach(group => {
+    if (group.length === 1) { const v = group[0]; v.dlat = v.lat; v.dlng = v.lng; return; }
+    group.sort((a, b) => (b.area || 0) - (a.area || 0));
+    const cLat = group.reduce((s, v) => s + v.lat, 0) / group.length;
+    const cLng = group.reduce((s, v) => s + v.lng, 0) / group.length;
+    group.forEach((v, i) => {
+      const ring = Math.floor(i / 8), slot = i % 8, n = Math.min(group.length - ring * 8, 8);
+      const rad = 13 + ring * 15;                          // m
+      const ang = (slot / n) * 2 * Math.PI + ring * 0.4;
+      v.dlat = cLat + (rad * Math.cos(ang)) / 111320;
+      v.dlng = cLng + (rad * Math.sin(ang)) / (111320 * Math.cos(cLat * Math.PI / 180));
+    });
+  });
+}
 const fmtDist = m => m < 1000 ? Math.round(m) + " m" : (m/1000).toFixed(1) + " km";
 const fmtFare = f => f ? "₩" + f.toLocaleString("ko-KR") : "";
 const seats = a => a ? Math.round(a/2.5) + "~" + Math.round(a/2) + "석" : null;
@@ -125,7 +157,7 @@ L.marker([D.igc.lat, D.igc.lng], { icon: igcIcon, zIndexOffset: 1000 }).addTo(ma
 });
 
 // ── 마커 ──
-const state = { cats: new Set(CATS), big: false, q: "", sort: "walk", srcs: new Set(["both", "lic", "kko"]) };
+const state = { cats: new Set(CATS), big: false, q: "", sort: "walk", srcs: new Set(["both", "lic", "kko"]), minArea: 0 };
 const SRC_LABEL = { both: "인허가+카카오", lic: "인허가만", kko: "카카오만" };
 const srcOf = v => !v.licensed ? "kko" : (v.kakao_url || v.coord_src === "kakao") ? "both" : "lic";
 const markers = new Map();
@@ -146,7 +178,7 @@ function popupHtml(v) {
 }
 D.venues.forEach((v, i) => {
   v.id = i;
-  const m = L.circleMarker([v.lat, v.lng], {
+  const m = L.circleMarker([v.dlat, v.dlng], {
     radius: radiusOf(v), color: "#fff", weight: 1.5,
     fillColor: CAT_COLOR[v.cat], fillOpacity: v.licensed ? 0.88 : 0.45,
   }).bindPopup(popupHtml(v));
@@ -166,6 +198,14 @@ CATS.forEach(c => {
 $("#q").oninput = e => { state.q = e.target.value.trim(); render(); };
 $("#sort").onchange = e => { state.sort = e.target.value; render(); };
 $("#f-big").onchange = e => { state.big = e.target.checked; render(); };
+const areaCtl = document.getElementById("areaCtl");
+L.DomEvent.disableClickPropagation(areaCtl); L.DomEvent.disableScrollPropagation(areaCtl);
+$("#areaRange").oninput = e => {
+  state.minArea = +e.target.value;
+  $("#areaVal").textContent = state.minArea ? `${state.minArea}㎡+` : "전체";
+  $("#areaSeat").textContent = state.minArea ? `약 ${Math.round(state.minArea/2.5)}석+` : "면적 필터";
+  render();
+};
 Object.entries(SRC_LABEL).forEach(([k, label]) => {
   const el = document.createElement("span");
   el.className = "chip on";
@@ -185,6 +225,7 @@ function visible() {
   return D.venues.filter(v =>
     state.cats.has(v.cat) &&
     (!state.big || (v.area || 0) >= 200) &&
+    (!state.minArea || (v.area || 0) >= state.minArea) &&
     state.srcs.has(srcOf(v)) &&
     (!state.q || v.name.toLowerCase().includes(state.q.toLowerCase()))
   ).sort(SORTS[state.sort]);
@@ -216,7 +257,7 @@ window.highlight = (id, fly) => {
   const it = document.getElementById("it-" + id);
   if (it) { it.classList.add("active"); it.scrollIntoView({ block: "nearest" }); }
   const v = D.venues[id], m = markers.get(id);
-  if (fly && m) { map.flyTo([v.lat, v.lng], Math.max(map.getZoom(), 16), { duration: 0.5 }); m.openPopup(); }
+  if (fly && m) { map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 17), { duration: 0.4 }); m.openPopup(); }
 };
 render();
 </script>
