@@ -48,9 +48,15 @@ def match(nm, branch, addr):
         if c:
             r = max(c, key=area_of); name_override[r["관리번호"]] = nm; return r
     full = norm(nm + (branch or "")); n = norm(nm); bn = base_name(nm)
+    plot = lot_of(addr or "")
     for key, table in ((full, by_name), (n, by_name), (bn, by_base)):
-        if key and table.get(key): return max(table[key], key=area_of)
-    lot = lot_of(addr or "")
+        cands = table.get(key) if key else None
+        if not cands: continue
+        if plot and len(cands) > 1:
+            same = [r for r in cands if lot_of(r["지번주소"]) == plot]
+            if same: cands = same
+        return max(cands, key=area_of)
+    lot = plot
     if lot:
         for r in by_lot.get(lot, []):
             rb = base_name(r["사업장명"])
@@ -112,20 +118,27 @@ def classify(uptae, kakao_leaf, dc_cat, big_nonpub):
     if re.search(r"감성주점|술집", t): return "포차·주점"
     return "포차·주점"
 
+try: _geo_cache = json.load(open(f"{DATA}/geocode_cache.json"))
+except Exception: _geo_cache = {}
+
 def geocode(jibun):
     m = re.search(r"(송도동\s*\d+(?:-\d+)?)", jibun or "")
     if not m: return None
+    ck = m.group(1)
+    if ck in _geo_cache: return dict(_geo_cache[ck]) if _geo_cache[ck] else None
     q = urllib.parse.quote(f"인천 연수구 {m.group(1)}")
     out = subprocess.run(["curl", "-s", "--max-time", "10",
                           f"https://dapi.kakao.com/v2/local/search/address.json?query={q}",
                           "-H", f"Authorization: KakaoAK {KEY}"], capture_output=True, text=True).stdout
+    res = None
     try:
         docs = json.loads(out)["documents"]
-        if docs: return {"lat": float(docs[0]["y"]), "lng": float(docs[0]["x"])}
+        if docs: res = {"lat": float(docs[0]["y"]), "lng": float(docs[0]["x"])}
     except Exception: pass
-    return None
+    _geo_cache[ck] = res
+    return res
 
-venues = {}; geocoded = 0
+venues = {}; geocoded = 0; coord_fixes = []
 EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식"}
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
@@ -137,6 +150,15 @@ for r in {id(x): x for x in pubs + kakao_bars_lic}.values():
         coords = geocode(r["지번주소"]); src = "geocode"; geocoded += 1
         time.sleep(0.08)
     if not coords: continue
+    if src == "kakao":
+        g = geocode(r["지번주소"])
+        if g:
+            import math
+            dm = math.hypot((coords["lat"] - g["lat"]) * 111320,
+                            (coords["lng"] - g["lng"]) * 111320 * math.cos(math.radians(g["lat"])))
+            if dm > 200:
+                coord_fixes.append(f"{r['사업장명']}: 카카오좌표가 지번에서 {dm:.0f}m 이탈 → 지번 좌표로 보정")
+                coords = g; src = "geocode(보정)"
     leaf = (kp.get("category_name", "").split(" > ")[-1] if kp else "")
     big_nonpub = False
     venues[f"lic:{mid}"] = {
@@ -159,6 +181,9 @@ for kp in kakao_unmatched:
         "kakao_url": kp.get("place_url") or "",
         "coord_src": "kakao", "lat": float(kp["y"]), "lng": float(kp["x"]),
     }
+json.dump(_geo_cache, open(f"{DATA}/geocode_cache.json", "w"))
+print(f"좌표 검증: 지번 대비 200m 초과 이탈 보정 {len(coord_fixes)}건")
+for c in coord_fixes: print("  !", c)
 out = {"generated": "2026-08-18", "igc": IGC, "venues": list(venues.values())}
 open(f"{DATA}/map_data.js", "w", encoding="utf-8").write("window.MAP_DATA = " + json.dumps(out, ensure_ascii=False) + ";")
 from collections import Counter
