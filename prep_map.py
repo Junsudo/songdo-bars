@@ -49,18 +49,27 @@ def match(nm, branch, addr):
             r = max(c, key=area_of); name_override[r["관리번호"]] = nm; return r
     full = norm(nm + (branch or "")); n = norm(nm); bn = base_name(nm)
     plot = lot_of(addr or "")
-    for key, table in ((full, by_name), (n, by_name), (bn, by_base)):
-        cands = table.get(key) if key else None
+    # 1) 같은 지번 + 이름 포함관계 — 가장 강한 근거 (비비큐(BBQ) 병기, 프런트/프론트 표기차 등 흡수)
+    if plot:
+        same = [r for r in by_lot.get(plot, [])
+                if bn and len(bn) >= 2 and (bn in base_name(r["사업장명"]) or base_name(r["사업장명"]) in bn)]
+        if same: return max(same, key=area_of)
+    # 2) 상호 정확 일치 (동명 다지점이면 같은 지번 우선)
+    for key in (full, n):
+        cands = by_name.get(key)
         if not cands: continue
         if plot and len(cands) > 1:
-            same = [r for r in cands if lot_of(r["지번주소"]) == plot]
-            if same: cands = same
+            s2 = [r for r in cands if lot_of(r["지번주소"]) == plot]
+            if s2: cands = s2
         return max(cands, key=area_of)
-    lot = plot
-    if lot:
-        for r in by_lot.get(lot, []):
-            rb = base_name(r["사업장명"])
-            if bn and rb and len(bn) >= 2 and (bn in rb or rb in bn): return r
+    # 3) 지점 접미사 제거 이름 — 지번이 전부 다른 걸로 확인되면 오지점 방지 위해 매칭 포기
+    cands = by_base.get(bn) if bn else None
+    if cands:
+        if plot:
+            s2 = [r for r in cands if lot_of(r["지번주소"]) == plot]
+            if s2: return max(s2, key=area_of)
+            if all(lot_of(r["지번주소"]) for r in cands): return None
+        return max(cands, key=area_of)
     return None
 
 # 폐업 대장 인덱스 — 미매칭 항목의 유령(폐업) 제거용
@@ -138,11 +147,14 @@ def geocode(jibun):
     _geo_cache[ck] = res
     return res
 
+EXCLUDE_NAMES = {"제우스볼펍"}  # 볼링장 등 술집 아님 (유저 확인)
+def excluded_name(nm): return any(x in norm(nm) for x in EXCLUDE_NAMES)
 venues = {}; geocoded = 0; coord_fixes = []
 EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식"}
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
 for r in {id(x): x for x in pubs + kakao_bars_lic}.values():
+    if excluded_name(r["사업장명"]): continue
     mid = r["관리번호"]
     kp = lic_kakao.get(mid); dp = lic_dc.get(mid)
     if kp: coords = {"lat": float(kp["y"]), "lng": float(kp["x"])}; src = "kakao"
@@ -173,6 +185,7 @@ for r in {id(x): x for x in pubs + kakao_bars_lic}.values():
     }
 dropped = []
 for kp in kakao_unmatched:
+    if excluded_name(kp["place_name"]): continue
     if is_closed(kp["place_name"], kp.get("address_name")):
         dropped.append("kakao:" + kp["place_name"]); continue
     leaf = kp.get("category_name", "").split(" > ")[-1]
