@@ -83,9 +83,9 @@
     <div class="row" id="cats"></div>
     <div class="row">
       <label class="toggle"><input type="checkbox" id="f-big"> 100석급(200㎡+)만</label>
-      <label class="toggle"><input type="checkbox" id="f-lic"> 인허가 확인만</label>
       <span id="count"></span>
     </div>
+    <div class="row" id="srcs" style="font-size:12px"><span style="color:var(--text-3);font-size:12px">출처</span></div>
   </div>
   <div id="list"></div>
 </div>
@@ -125,7 +125,9 @@ L.marker([D.igc.lat, D.igc.lng], { icon: igcIcon, zIndexOffset: 1000 }).addTo(ma
 });
 
 // ── 마커 ──
-const state = { cats: new Set(CATS), big: false, lic: false, q: "", sort: "walk" };
+const state = { cats: new Set(CATS), big: false, q: "", sort: "walk", srcs: new Set(["both", "lic", "kko"]) };
+const SRC_LABEL = { both: "인허가+카카오", lic: "인허가만", kko: "카카오만" };
+const srcOf = v => !v.licensed ? "kko" : (v.kakao_url || v.coord_src === "kakao") ? "both" : "lic";
 const markers = new Map();
 const radiusOf = v => v.area ? Math.max(6, Math.min(22, Math.sqrt(v.area) * 0.95)) : 6;
 function popupHtml(v) {
@@ -164,7 +166,13 @@ CATS.forEach(c => {
 $("#q").oninput = e => { state.q = e.target.value.trim(); render(); };
 $("#sort").onchange = e => { state.sort = e.target.value; render(); };
 $("#f-big").onchange = e => { state.big = e.target.checked; render(); };
-$("#f-lic").onchange = e => { state.lic = e.target.checked; render(); };
+Object.entries(SRC_LABEL).forEach(([k, label]) => {
+  const el = document.createElement("span");
+  el.className = "chip on";
+  el.textContent = label;
+  el.onclick = () => { state.srcs.has(k) ? state.srcs.delete(k) : state.srcs.add(k); el.classList.toggle("off", !state.srcs.has(k)); render(); };
+  $("#srcs").appendChild(el);
+});
 
 const SORTS = {
   walk: (a, b) => (a.walk_min ?? 1e9) - (b.walk_min ?? 1e9) || a.dist - b.dist,
@@ -177,7 +185,7 @@ function visible() {
   return D.venues.filter(v =>
     state.cats.has(v.cat) &&
     (!state.big || (v.area || 0) >= 200) &&
-    (!state.lic || v.licensed) &&
+    state.srcs.has(srcOf(v)) &&
     (!state.q || v.name.toLowerCase().includes(state.q.toLowerCase()))
   ).sort(SORTS[state.sort]);
 }
