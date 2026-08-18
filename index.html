@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>송도 술집 지도 — IGC 기준</title>
+<meta name="description" content="인천글로벌캠퍼스(IGC) 기준 송도 술집 지도 — 인허가 면적·추정 좌석·도보/택시 시간·전화번호">
+<meta property="og:title" content="송도 술집 지도 — IGC 기준">
+<meta property="og:description" content="IGC에서 도보·택시 시간, 면적 기반 추정 좌석, 전화번호까지 한눈에">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍺</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data/map_data.js"></script>
+<style>
+  :root {
+    --surface: #fcfcfb; --panel: #ffffff; --border: #e6e4df;
+    --text-1: #0b0b0b; --text-2: #52514e; --text-3: #8a8781;
+    --accent: #2a78d6;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font-family: "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif; color: var(--text-1); background: var(--surface); display: flex; }
+  #side { width: 420px; min-width: 330px; height: 100%; display: flex; flex-direction: column; background: var(--panel); border-right: 1px solid var(--border); }
+  #map { flex: 1; height: 100%; }
+  header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 16px; font-weight: 700; }
+  header .sub { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+  #controls { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  input[type=search] { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); }
+  select { padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); color: var(--text-1); }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; cursor: pointer; user-select: none; background: var(--surface); color: var(--text-2); }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .chip.on { border-color: var(--text-2); color: var(--text-1); background: #f4f3f0; }
+  .chip.off { opacity: .38; }
+  .toggle { font-size: 12px; color: var(--text-2); display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+  #count { font-size: 12px; color: var(--text-3); margin-left: auto; }
+  #list { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+  .item { padding: 10px 16px; border-bottom: 1px solid #f1f0ec; cursor: pointer; }
+  .item:hover, .item.active { background: #f4f6fa; }
+  .item .t { display: flex; align-items: baseline; gap: 7px; }
+  .item .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; align-self: center; }
+  .item .dot.unlic { background: transparent !important; border: 2px dashed currentColor; }
+  .item .nm { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .walk { margin-left: auto; font-size: 12px; color: var(--text-2); flex: none; font-variant-numeric: tabular-nums; }
+  .item .meta { font-size: 12px; color: var(--text-2); margin-top: 3px; padding-left: 17px; }
+  .item .meta a { color: var(--accent); text-decoration: none; }
+  .badge { display: inline-block; font-size: 10.5px; padding: 1px 6px; border-radius: 4px; margin-left: 4px; vertical-align: 1px; }
+  .badge.big { background: #ece9f8; color: #3a2d86; }
+  .badge.unlic { background: #f3f2ef; color: var(--text-3); }
+  .badge.multi { background: #e7f1fc; color: #1c5cab; }
+  .leaflet-popup-content { font-family: inherit; font-size: 13px; line-height: 1.55; margin: 12px 14px; min-width: 220px; }
+  .pop-nm { font-size: 14.5px; font-weight: 700; margin-bottom: 2px; }
+  .pop-cat { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
+  .pop-kv { color: var(--text-2); } .pop-kv b { color: var(--text-1); font-weight: 600; }
+  .pop-links { margin-top: 7px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .pop-links a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 12.5px; }
+  .ring-label { background: none; border: none; box-shadow: none; font-weight: 700; color: #444; font-size: 11px; text-shadow: 0 0 3px #fff, 0 0 3px #fff; white-space: nowrap; }
+  @media (max-width: 760px) {
+    body { flex-direction: column-reverse; }
+    #side { width: 100%; height: 48%; min-width: 0; border-right: none; border-top: 1px solid var(--border); }
+    #map { height: 52%; }
+  }
+</style>
+</head>
+<body>
+<div id="side">
+  <header>
+    <h1>송도 술집 지도</h1>
+    <div class="sub">인천글로벌캠퍼스(IGC) 기준 · 연수구 인허가 대장 + 카카오맵 · 2026-08-18</div>
+  </header>
+  <div id="controls">
+    <div class="row">
+      <input id="q" type="search" placeholder="상호 검색">
+      <select id="sort">
+        <option value="walk">도보 빠른 순</option>
+        <option value="taxi">택시 빠른 순</option>
+        <option value="dist">직선거리 순</option>
+        <option value="area">면적 큰 순</option>
+        <option value="name">이름순</option>
+      </select>
+    </div>
+    <div class="row" id="cats"></div>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="f-big"> 100석급(200㎡+)만</label>
+      <label class="toggle"><input type="checkbox" id="f-lic"> 인허가 확인만</label>
+      <span id="count"></span>
+    </div>
+  </div>
+  <div id="list"></div>
+</div>
+<div id="map"></div>
+<script>
+const D = window.MAP_DATA;
+const CAT_COLOR = { "호프·펍": "#2a78d6", "이자카야": "#eb6834", "포차·주점": "#1baf7a", "바·라운지": "#e87ba4", "회식형 대형": "#4a3aa7" };
+const CATS = Object.keys(CAT_COLOR);
+const R = 6371000;
+const MOBILE = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+function hav(a, b) {
+  const dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+  const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180) * Math.cos(b.lat*Math.PI/180) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+D.venues.forEach(v => { v.dist = hav(D.igc, v); });
+const fmtDist = m => m < 1000 ? Math.round(m) + " m" : (m/1000).toFixed(1) + " km";
+const fmtFare = f => f ? "₩" + f.toLocaleString("ko-KR") : "";
+const seats = a => a ? Math.round(a/2.5) + "~" + Math.round(a/2) + "석" : null;
+const telHref = p => "tel:" + p.replace(/[^0-9]/g, "");
+const transitHref = v => MOBILE
+  ? `kakaomap://route?sp=${D.igc.lat},${D.igc.lng}&ep=${v.lat},${v.lng}&by=PUBLICTRANSIT`
+  : `https://map.kakao.com/link/to/${encodeURIComponent(v.name)},${v.lat},${v.lng}`;
+
+// ── 지도 ──
+const map = L.map("map", { zoomControl: true }).setView([D.igc.lat, D.igc.lng], 15);
+const carto = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 20, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
+const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" });
+const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Esri World Imagery" });
+L.control.layers({ "라이트": carto, "일반(OSM)": osm, "위성": sat }, null, { position: "topright" }).addTo(map);
+
+const igcIcon = L.divIcon({ className: "", html: `<div style="width:26px;height:26px;border-radius:50%;background:#0b0b0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.4)">IGC</div>`, iconSize: [26,26], iconAnchor: [13,13] });
+L.marker([D.igc.lat, D.igc.lng], { icon: igcIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("<b>인천글로벌캠퍼스</b><br>송도동 187");
+[[500,"500m"],[1000,"1km"],[2000,"2km"]].forEach(([r, lab]) => {
+  L.circle([D.igc.lat, D.igc.lng], { radius: r, fill: false, color: "#7a7770", weight: 1, dashArray: "4 5", interactive: false }).addTo(map);
+  L.marker([D.igc.lat + r/R*180/Math.PI, D.igc.lng], { icon: L.divIcon({ className: "ring-label", html: lab, iconAnchor: [12, 8] }), interactive: false }).addTo(map);
+});
+
+// ── 마커 ──
+const state = { cats: new Set(CATS), big: false, lic: false, q: "", sort: "walk" };
+const markers = new Map();
+const radiusOf = v => v.area ? Math.max(6, Math.min(22, Math.sqrt(v.area) * 0.95)) : 6;
+function popupHtml(v) {
+  const rows = [];
+  if (v.area) rows.push(`<div class="pop-kv">면적 <b>${v.area.toFixed(0)}㎡</b> · 추정 <b>${seats(v.area)}</b></div>`);
+  rows.push(`<div class="pop-kv">🚶 도보 <b>${v.walk_min ?? "-"}분</b>${v.walk_km ? ` (${v.walk_km}km)` : ""} · 🚕 택시 <b>${v.taxi_min ?? "-"}분</b>${v.taxi_fare ? " · 약 " + fmtFare(v.taxi_fare) : ""}</div>`);
+  if (v.uptae) rows.push(`<div class="pop-kv">인허가 업태 <b>${v.uptae}</b>${v.multi_use ? " · 다중이용업소" : ""}</div>`);
+  rows.push(`<div class="pop-kv" style="margin-top:4px">${v.road || v.jibun}</div>`);
+  if (!v.licensed) rows.push(`<div class="pop-kv" style="color:#8a8781">인허가 대장 미매칭 — 전화로 확인 필요</div>`);
+  const links = [];
+  if (v.phone) links.push(`<a href="${telHref(v.phone)}">☎ ${v.phone}</a>`);
+  links.push(`<a href="${transitHref(v)}" target="_blank" rel="noopener">🚌 대중교통(실시간)</a>`);
+  if (v.kakao_url) links.push(`<a href="${v.kakao_url}" target="_blank" rel="noopener">카카오맵</a>`);
+  links.push(`<a href="https://map.naver.com/p/search/${encodeURIComponent(v.name + " 송도")}" target="_blank" rel="noopener">네이버</a>`);
+  return `<div class="pop-nm">${v.name}</div><div class="pop-cat">${v.cat}</div>${rows.join("")}<div class="pop-links">${links.join("")}</div>`;
+}
+D.venues.forEach((v, i) => {
+  v.id = i;
+  const m = L.circleMarker([v.lat, v.lng], {
+    radius: radiusOf(v), color: "#fff", weight: 1.5,
+    fillColor: CAT_COLOR[v.cat], fillOpacity: v.licensed ? 0.88 : 0.45,
+  }).bindPopup(popupHtml(v));
+  m.on("click", () => highlight(v.id, false));
+  markers.set(v.id, m);
+});
+
+// ── 필터/정렬/리스트 ──
+const $ = s => document.querySelector(s);
+CATS.forEach(c => {
+  const el = document.createElement("span");
+  el.className = "chip on";
+  el.innerHTML = `<span class="dot" style="background:${CAT_COLOR[c]}"></span>${c}`;
+  el.onclick = () => { state.cats.has(c) ? state.cats.delete(c) : state.cats.add(c); el.classList.toggle("off", !state.cats.has(c)); render(); };
+  $("#cats").appendChild(el);
+});
+$("#q").oninput = e => { state.q = e.target.value.trim(); render(); };
+$("#sort").onchange = e => { state.sort = e.target.value; render(); };
+$("#f-big").onchange = e => { state.big = e.target.checked; render(); };
+$("#f-lic").onchange = e => { state.lic = e.target.checked; render(); };
+
+const SORTS = {
+  walk: (a, b) => (a.walk_min ?? 1e9) - (b.walk_min ?? 1e9) || a.dist - b.dist,
+  taxi: (a, b) => (a.taxi_min ?? 1e9) - (b.taxi_min ?? 1e9) || a.dist - b.dist,
+  dist: (a, b) => a.dist - b.dist,
+  area: (a, b) => (b.area || 0) - (a.area || 0),
+  name: (a, b) => a.name.localeCompare(b.name, "ko"),
+};
+function visible() {
+  return D.venues.filter(v =>
+    state.cats.has(v.cat) &&
+    (!state.big || (v.area || 0) >= 200) &&
+    (!state.lic || v.licensed) &&
+    (!state.q || v.name.toLowerCase().includes(state.q.toLowerCase()))
+  ).sort(SORTS[state.sort]);
+}
+function render() {
+  const vs = visible();
+  const shown = new Set(vs.map(v => v.id));
+  markers.forEach((m, id) => { const has = map.hasLayer(m); if (shown.has(id) && !has) m.addTo(map); else if (!shown.has(id) && has) m.remove(); });
+  $("#count").textContent = vs.length + "곳";
+  $("#list").innerHTML = vs.map(v => `
+    <div class="item" id="it-${v.id}" onclick="highlight(${v.id}, true)">
+      <div class="t">
+        <span class="dot ${v.licensed ? "" : "unlic"}" style="background:${CAT_COLOR[v.cat]};color:${CAT_COLOR[v.cat]}"></span>
+        <span class="nm">${v.name}</span>
+        <span class="walk">🚶${v.walk_min ?? "-"}분·🚕${v.taxi_min ?? "-"}분</span>
+      </div>
+      <div class="meta">
+        ${v.area ? v.area.toFixed(0) + "㎡ · " + seats(v.area) : "면적 미상"}
+        ${(v.area || 0) >= 200 ? '<span class="badge big">100석급</span>' : ""}
+        ${v.multi_use ? '<span class="badge multi">다중이용업소</span>' : ""}
+        ${v.licensed ? "" : '<span class="badge unlic">인허가 미매칭</span>'}
+        <br>${v.phone ? `<a href="${telHref(v.phone)}" onclick="event.stopPropagation()">☎ ${v.phone}</a>` : "☎ —"}
+        ${v.taxi_fare ? " · 택시 약 " + fmtFare(v.taxi_fare) : ""}
+      </div>
+    </div>`).join("");
+}
+window.highlight = (id, fly) => {
+  document.querySelectorAll(".item.active").forEach(e => e.classList.remove("active"));
+  const it = document.getElementById("it-" + id);
+  if (it) { it.classList.add("active"); it.scrollIntoView({ block: "nearest" }); }
+  const v = D.venues[id], m = markers.get(id);
+  if (fly && m) { map.flyTo([v.lat, v.lng], Math.max(map.getZoom(), 16), { duration: 0.5 }); m.openPopup(); }
+};
+render();
+</script>
+</body>
+</html>
