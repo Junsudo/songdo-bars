@@ -157,12 +157,14 @@ for r in {id(x): x for x in pubs + kakao_bars_lic}.values():
             dm = math.hypot((coords["lat"] - g["lat"]) * 111320,
                             (coords["lng"] - g["lng"]) * 111320 * math.cos(math.radians(g["lat"])))
             if dm > 200:
-                coord_fixes.append(f"{r['사업장명']}: 카카오좌표가 지번에서 {dm:.0f}m 이탈 → 지번 좌표로 보정")
-                coords = g; src = "geocode(보정)"
+                coord_fixes.append(f"{r['사업장명']}: 카카오좌표가 지번에서 {dm:.0f}m 이탈 → 지번 좌표로 보정, 카카오 연결 해제")
+                coords = g; src = "geocode(보정)"; kp = None
     leaf = (kp.get("category_name", "").split(" > ")[-1] if kp else "")
     big_nonpub = False
     venues[f"lic:{mid}"] = {
-        "name": name_override.get(mid, r["사업장명"]), "cat": classify(r["업태구분명"], leaf, "", big_nonpub),
+        "name": name_override.get(mid) or (kp["place_name"] if kp else re.sub(r"^\s*(주식회사|유한회사|\(주\)|㈜|\(유\))\s*|\s*(\(주\)|㈜)\s*$", "", r["사업장명"]).strip() or r["사업장명"]),
+        "lic_name": r["사업장명"] if kp and kp["place_name"] != r["사업장명"] else "",
+        "cat": classify(r["업태구분명"], leaf, "", big_nonpub),
         "uptae": r["업태구분명"], "area": area_of(r) or None,
         "phone": r["전화번호"] or (kp.get("phone") if kp else "") or "",
         "road": r["도로명주소"] or "", "jibun": r["지번주소"] or "",
