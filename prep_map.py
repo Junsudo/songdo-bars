@@ -183,8 +183,11 @@ extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS
              and (norm(r["사업장명"]), lot_of(r["지번주소"])) not in EXTRA_DROP_LOTS]  # 명시 목록은 업태 제외보다 우선
 # 대형(200㎡+) 트랙 — 회식 가능 대형 매장 (구내식당·카페·골프장류 노이즈 제외)
 BIG_NOISE = re.compile(r"구내|카페테리아|공사현장|골프|클럽하우스|스타트 ?하우스|베이커리|빵|브런치|투썸|할리스|아티제|커피|카페|제과|연세대|어린이")
-big_track = [r for r in songdo if area_of(r) >= 200 and r["업태구분명"] not in ("출장조리", "감성주점")
-             and not BIG_NOISE.search(r["사업장명"])]
+# 대형 트랙도 업태 제외 규칙 준수 + 대학생 회식과 안 맞는 종류 제거 (유저 지시)
+BIG_BAD_UPTAE = EXCLUDE_UPTAE | {"출장조리", "탕류(보신용)", "패밀리레스트랑", "냉면집", "까페", "일식"}
+BIG_BAD_NAME = re.compile(r"한정식|정식|초밥|스시|샤브|칼국수|국수|냉면|백반|가정식|브런치|돈가스|국밥|감자탕|보쌈|족발|횟집|생선|소고기|한우|급식|뷔페|죽|삼계탕|추어탕|해물탕|매운탕|우육면|훠궈|돈까스|카레|덮밥|비빔밥|보리밥|들밥|정육")
+big_track = [r for r in songdo if 200 <= area_of(r) <= 300 and r["업태구분명"] not in BIG_BAD_UPTAE
+             and not BIG_NOISE.search(r["사업장명"]) and not BIG_BAD_NAME.search(r["사업장명"])]  # 300㎡ 초과는 기업식당·대형식당류 (유저 판정)
 big_ids = {r["관리번호"] for r in big_track}
 
 # 호텔 내 업소 제외 (유저 지시)

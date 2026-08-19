@@ -75,6 +75,12 @@ for v in data["venues"]:
     else:
         v["naver_cat"] = ""; v["naver_ok"] = False
 
+# 대형 카테고리: 네이버 분류가 회식과 안 맞으면 제거 (급식·한정식·구이·초밥 등)
+BAD_CAT = re.compile(r"급식|한정식|소고기|생선|초밥|롤|일식당|뷔페|샤브|칼국수|국수|냉면|백반|가정식|브런치|돈가스|국밥|감자탕|보신|죽|기사식당|반찬|도시락")
+dropped = [v["name"] for v in data["venues"] if v.get("cat") == "대형(200㎡+)" and BAD_CAT.search(v.get("naver_cat") or "")]
+data["venues"] = [v for v in data["venues"] if not (v.get("cat") == "대형(200㎡+)" and BAD_CAT.search(v.get("naver_cat") or ""))]
+if dropped: print(f"대형 트랙 네이버 분류 부적합 제거 {len(dropped)}곳:", ", ".join(dropped[:10]), "…" if len(dropped) > 10 else "")
+
 json.dump(cache, open("data/naver_cache.json", "w"))
 open("data/map_data.js", "w", encoding="utf-8").write(PREFIX + json.dumps(data, ensure_ascii=False) + ";")
 print(f"네이버 등록 확인 {found}/{len(data['venues'])}, 좌표 300m 초과 {far}건")
