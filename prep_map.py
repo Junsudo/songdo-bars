@@ -166,7 +166,7 @@ def geocode(jibun):
 EXCLUDE_NAMES = {"제우스볼펍", "헌팅"}  # 볼링장·헌팅포차류 (유저 지시)
 def excluded_name(nm): return any(x in norm(nm) for x in EXCLUDE_NAMES)
 venues = {}; geocoded = 0; coord_fixes = []
-EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점"}  # 감성주점=춤 허용 업태(헌팅포차류)
+EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점", "라이브카페"}  # 감성주점=춤 허용(헌팅포차류)
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
 extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS
