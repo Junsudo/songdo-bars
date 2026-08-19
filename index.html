@@ -61,7 +61,7 @@
     display: flex; flex-direction: column; align-items: center; gap: 7px; box-shadow: 0 1px 6px rgba(0,0,0,.15); }
   #areaCtl .lab { font-size: 11px; color: var(--text-2); text-align: center; line-height: 1.3; width: 52px; }
   #areaCtl .lab b { color: var(--text-1); font-size: 12px; }
-  #areaRange { writing-mode: vertical-lr; direction: rtl; -webkit-appearance: slider-vertical; width: 22px; height: 170px; accent-color: var(--accent); }
+  #areaMin, #areaMax { writing-mode: vertical-lr; direction: rtl; -webkit-appearance: slider-vertical; width: 20px; height: 150px; accent-color: var(--accent); }
   .ring-label { background: none; border: none; box-shadow: none; font-weight: 700; color: #444; font-size: 11px; text-shadow: 0 0 3px #fff, 0 0 3px #fff; white-space: nowrap; }
   @media (max-width: 760px) {
     body { flex-direction: column-reverse; }
@@ -100,7 +100,11 @@
 <div id="map">
   <div id="areaCtl">
     <div class="lab"><b id="areaVal">전체</b><br><span id="areaSeat">면적 필터</span></div>
-    <input id="areaRange" type="range" orient="vertical" min="0" max="400" step="10" value="0">
+    <div style="display:flex;gap:4px">
+      <input id="areaMin" type="range" orient="vertical" min="0" max="400" step="10" value="0" title="하한">
+      <input id="areaMax" type="range" orient="vertical" min="0" max="400" step="10" value="400" title="상한">
+    </div>
+    <div class="lab" style="font-size:10px;color:var(--text-3)">하한 · 상한</div>
   </div>
 </div>
 <script>
@@ -215,13 +219,21 @@ $("#f-big").onchange = e => { state.big = e.target.checked; render(); };
 $("#f-naver").onchange = e => { state.naver = e.target.checked; render(); };
 const areaCtl = document.getElementById("areaCtl");
 L.DomEvent.disableClickPropagation(areaCtl); L.DomEvent.disableScrollPropagation(areaCtl);
-{ const amax = Math.ceil(Math.max(...D.venues.map(v => v.area || 0)) / 10) * 10;
-  $("#areaRange").max = amax; }
-$("#areaRange").oninput = e => {
-  state.minArea = +e.target.value;
-  $("#areaVal").textContent = state.minArea ? `${state.minArea}㎡+` : "전체";
-  $("#areaSeat").textContent = state.minArea ? `약 ${Math.round(state.minArea/2)}석+` : "면적 필터";
-  render();
+const AMAX = Math.ceil(Math.max(...D.venues.map(v => v.area || 0)) / 10) * 10;
+$("#areaMin").max = AMAX; $("#areaMax").max = AMAX; $("#areaMax").value = AMAX;
+state.maxArea = AMAX;
+function areaLabel() {
+  const lo = state.minArea, hi = state.maxArea, dflt = !lo && hi >= AMAX;
+  $("#areaVal").textContent = dflt ? "전체" : `${lo}~${hi >= AMAX ? "" : hi}㎡`.replace("~㎡", "㎡+");
+  $("#areaSeat").textContent = dflt ? "면적 필터" : `약 ${Math.round(lo/2)}~${hi >= AMAX ? "" : Math.round(hi/1.65)}석`.replace("~석", "석+");
+}
+$("#areaMin").oninput = e => {
+  state.minArea = Math.min(+e.target.value, state.maxArea); e.target.value = state.minArea;
+  areaLabel(); render();
+};
+$("#areaMax").oninput = e => {
+  state.maxArea = Math.max(+e.target.value, state.minArea); e.target.value = state.maxArea;
+  areaLabel(); render();
 };
 Object.entries(SRC_LABEL).forEach(([k, label]) => {
   const el = document.createElement("span");
@@ -243,7 +255,7 @@ function visible() {
     state.cats.has(v.cat) &&
     (!state.big || (v.area || 0) >= 200) &&
     (!state.naver || v.naver_ok) &&
-    (!state.minArea || (v.area || 0) >= state.minArea) &&
+    ((!state.minArea && state.maxArea >= AMAX) || (v.area && v.area >= state.minArea && v.area <= state.maxArea)) &&
     state.srcs.has(srcOf(v)) &&
     (!state.q || v.name.toLowerCase().includes(state.q.toLowerCase()))
   ).sort(SORTS[state.sort]);
