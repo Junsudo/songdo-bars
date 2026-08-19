@@ -186,8 +186,13 @@ BIG_NOISE = re.compile(r"구내|카페테리아|공사현장|골프|클럽하우
 # 대형 트랙도 업태 제외 규칙 준수 + 대학생 회식과 안 맞는 종류 제거 (유저 지시)
 BIG_BAD_UPTAE = EXCLUDE_UPTAE | {"출장조리", "탕류(보신용)", "패밀리레스트랑", "냉면집", "까페", "일식"}
 BIG_BAD_NAME = re.compile(r"한정식|정식|초밥|스시|샤브|칼국수|국수|냉면|백반|가정식|브런치|돈가스|국밥|감자탕|보쌈|족발|횟집|생선|소고기|한우|급식|뷔페|죽|삼계탕|추어탕|해물탕|매운탕|우육면|훠궈|돈까스|카레|덮밥|비빔밥|보리밥|들밥|정육")
-big_track = [r for r in songdo if 200 <= area_of(r) <= 300 and r["업태구분명"] not in BIG_BAD_UPTAE
-             and not BIG_NOISE.search(r["사업장명"]) and not BIG_BAD_NAME.search(r["사업장명"])]  # 300㎡ 초과는 기업식당·대형식당류 (유저 판정)
+# 개별 부적합 판정분 (유저 확인: 300㎡ 초과분 전수 검토 결과 전원 회식 부적합)
+BIG_DROP_NAMES = {norm(x) for x in ["윤에프앤비", "잇츠네이처", "해원 송도본점", "팔진향 한옥마을점(주)엔타스에스디",
+    "채궁", "왕십리 조개창고", "천상현국가공인진갈비 롯데마트 인천송도점", "미식여행", "송도베이",
+    "건강밥상 심마니", "장어촌", "플러스앤시스템", "제이에스(JS)가든 송도점", "청담"]}
+big_track = [r for r in songdo if area_of(r) >= 200 and r["업태구분명"] not in BIG_BAD_UPTAE
+             and not BIG_NOISE.search(r["사업장명"]) and not BIG_BAD_NAME.search(r["사업장명"])
+             and norm(r["사업장명"]) not in BIG_DROP_NAMES]
 big_ids = {r["관리번호"] for r in big_track}
 
 # 호텔 내 업소 제외 (유저 지시)
