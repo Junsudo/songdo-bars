@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="data/map_data.js"></script>
+<script src="data/transit.js"></script>
 <style>
   :root {
     --surface: #fcfcfb; --panel: #ffffff; --border: #e6e4df;
@@ -104,7 +105,7 @@
 </div>
 <script>
 const D = window.MAP_DATA;
-const CAT_COLOR = { "호프·펍": "#2a78d6", "이자카야": "#eb6834", "포차·주점": "#1baf7a", "바·라운지": "#e87ba4" };
+const CAT_COLOR = { "호프·펍": "#2a78d6", "이자카야": "#eb6834", "포차·주점": "#1baf7a", "바·라운지": "#e87ba4", "대형(200㎡+)": "#4a3aa7" };
 const CATS = Object.keys(CAT_COLOR);
 const R = 6371000;
 const MOBILE = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
@@ -137,7 +138,7 @@ D.venues.forEach(v => { v.dist = hav(D.igc, v); });
 }
 const fmtDist = m => m < 1000 ? Math.round(m) + " m" : (m/1000).toFixed(1) + " km";
 const fmtFare = f => f ? "₩" + f.toLocaleString("ko-KR") : "";
-const seats = a => a ? Math.round(a/2.5) + "~" + Math.round(a/2) + "석" : null;
+const seats = a => a ? Math.round(a/2) + "~" + Math.round(a/1.65) + "석" : null;  // 실측 보정(150㎡=90석)
 const telHref = p => "tel:" + p.replace(/[^0-9]/g, "");
 const transitHref = v => MOBILE
   ? `kakaomap://route?sp=${D.igc.lat},${D.igc.lng}&ep=${v.lat},${v.lng}&by=PUBLICTRANSIT`
@@ -148,8 +149,19 @@ const map = L.map("map", { zoomControl: true }).setView([D.igc.lat, D.igc.lng], 
 const carto = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 20, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
 const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" });
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Esri World Imagery" });
-L.control.layers({ "라이트": carto, "일반(OSM)": osm, "위성": sat }, null, { position: "topright" }).addTo(map);
+let layerCtl;  // 오버레이는 아래에서 등록
 
+// 교통 오버레이
+const T = window.TRANSIT || { line1: [], stations: [], bus42: [] };
+const subwayG = L.layerGroup();
+T.line1.forEach(seg => L.polyline(seg, { color: "#6f99c8", weight: 3, opacity: .8, interactive: false }).addTo(subwayG));
+T.stations.forEach(s => L.circleMarker([s.lat, s.lng], { radius: 5.5, color: "#3c6ea5", weight: 2, fillColor: "#fff", fillOpacity: 1 })
+  .bindTooltip(s.name, { direction: "top" }).addTo(subwayG));
+subwayG.addTo(map);
+const busG = L.layerGroup();
+T.bus42.forEach(s => L.circleMarker([s.lat, s.lng], { radius: 4, color: "#fff", weight: 1.2, fillColor: "#2c9f45", fillOpacity: .95 })
+  .bindTooltip("순환42 · " + s.name, { direction: "top" }).addTo(busG));
+busG.addTo(map);
 const igcIcon = L.divIcon({ className: "", html: `<div style="width:26px;height:26px;border-radius:50%;background:#0b0b0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.4)">IGC</div>`, iconSize: [26,26], iconAnchor: [13,13] });
 L.marker([D.igc.lat, D.igc.lng], { icon: igcIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("<b>인천글로벌캠퍼스</b><br>송도동 187");
 [[500,"500m"],[1000,"1km"],[2000,"2km"]].forEach(([r, lab]) => {
@@ -208,7 +220,7 @@ L.DomEvent.disableClickPropagation(areaCtl); L.DomEvent.disableScrollPropagation
 $("#areaRange").oninput = e => {
   state.minArea = +e.target.value;
   $("#areaVal").textContent = state.minArea ? `${state.minArea}㎡+` : "전체";
-  $("#areaSeat").textContent = state.minArea ? `약 ${Math.round(state.minArea/2.5)}석+` : "면적 필터";
+  $("#areaSeat").textContent = state.minArea ? `약 ${Math.round(state.minArea/2)}석+` : "면적 필터";
   render();
 };
 Object.entries(SRC_LABEL).forEach(([k, label]) => {
@@ -256,6 +268,7 @@ function render() {
         ${v.naver_ok ? "" : '<span class="badge unlic">네이버 미등록</span>'}
         <br>${v.phone ? `<a href="${telHref(v.phone)}" onclick="event.stopPropagation()">☎ ${v.phone}</a>` : "☎ —"}
         ${v.taxi_fare ? " · 택시 약 " + fmtFare(v.taxi_fare) : ""}
+        ${v.seat_blog ? " · 블로그 " + v.seat_blog + "석 언급" : ""}${v.group_blog ? " · 단체 " + v.group_blog + "명 언급" : ""}
       </div>
     </div>`).join("");
 }
@@ -266,6 +279,7 @@ window.highlight = (id, fly) => {
   const v = D.venues[id], m = markers.get(id);
   if (fly && m) { map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 17), { duration: 0.4 }); m.openPopup(); }
 };
+layerCtl = L.control.layers({ "라이트": carto, "일반(OSM)": osm, "위성": sat }, { "인천1호선": subwayG, "순환42 정류장": busG }, { position: "topright" }).addTo(map);
 render();
 </script>
 </body>

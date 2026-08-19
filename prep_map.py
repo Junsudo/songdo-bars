@@ -6,7 +6,7 @@ from collections import defaultdict
 
 DATA = "data"
 KEY = [l.split("=", 1)[1].strip() for l in open("keys.env") if l.startswith("KAKAO_REST_KEY=")][0]
-PUB_TYPES = {"호프/통닭", "감성주점", "정종/대포집/소주방"}
+PUB_TYPES = {"호프/통닭", "정종/대포집/소주방"}
 IGC = {"lat": 37.3760532112935, "lng": 126.667676508026}  # 카카오 실측(인천글로벌캠퍼스, 송도동 187)
 
 def norm(s):
@@ -40,7 +40,8 @@ for r in songdo:
     if lot: by_lot[lot].append(r)
 
 ALIAS = {"또봉이통닭 인천송도AIT센터점": "브루엠",
-         "10.19갤러리&라운지": "10.19 Gallery&Lounge(10.19 갤러리 앤 라운지)"}  # 카카오 상호 → 인허가 사업장명 (실사 확인분)
+         "10.19갤러리&라운지": "10.19 Gallery&Lounge(10.19 갤러리 앤 라운지)",
+         "펀비어킹 인천 송도마리나베이점": "펀비어킹 송도마리나베이점"}  # 카카오 상호 → 인허가 사업장명 (실사 확인분)
 name_override = {}
 
 def match(nm, branch, addr):
@@ -91,7 +92,7 @@ def is_closed(nm, addr):
     return False
 
 dc = json.load(open(f"{DATA}/diningcode_all.json"))
-kakao = json.load(open(f"{DATA}/kakao_bars.json"))
+kakao = [x for x in json.load(open(f"{DATA}/kakao_bars.json")) if not re.search(r"나이트|클럽", x["category_name"])]
 
 lic_dc = {}; lic_kakao = {}
 dc_unmatched = []; kakao_unmatched = []
@@ -144,6 +145,7 @@ print(f"치킨 카테고리: 기준 통과 {chick_added}, 지정 포함 {forced}
 # ── 카테고리 분류 ──────────────────────────────────────────
 def classify(uptae, kakao_leaf, dc_cat, big_nonpub):
     t = " ".join(x for x in [uptae or "", kakao_leaf or "", dc_cat or ""] if x)
+    if big_nonpub: return "대형(200㎡+)"
     if re.search(r"일본식주점|이자카야|사케", t): return "이자카야"
     if re.search(r"칵테일|와인|위스키|재즈|라운지|바$|하이볼|LP", t): return "바·라운지"
     if re.search(r"포장마차|포차|대포집|소주방|오뎅", t): return "포차·주점"
@@ -171,16 +173,29 @@ def geocode(jibun):
     _geo_cache[ck] = res
     return res
 
-EXCLUDE_NAMES = {"제우스볼펍"}  # 볼링장 등 술집 아님 (유저 확인)
+EXCLUDE_NAMES = {"제우스볼펍", "헌팅"}  # 볼링장·헌팅포차류 (유저 지시)
 def excluded_name(nm): return any(x in norm(nm) for x in EXCLUDE_NAMES)
 venues = {}; geocoded = 0; coord_fixes = []
-EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식"}
+EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점"}  # 감성주점=춤 허용 업태(헌팅포차류)
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
 extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS
              and (norm(r["사업장명"]), lot_of(r["지번주소"])) not in EXTRA_DROP_LOTS]  # 명시 목록은 업태 제외보다 우선
-for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic}.values():
+# 대형(200㎡+) 트랙 — 회식 가능 대형 매장 (구내식당·카페·골프장류 노이즈 제외)
+BIG_NOISE = re.compile(r"구내|카페테리아|공사현장|골프|클럽하우스|스타트 ?하우스|베이커리|빵|브런치|투썸|할리스|아티제|커피|카페|제과|연세대|어린이")
+big_track = [r for r in songdo if area_of(r) >= 200 and r["업태구분명"] not in ("출장조리", "감성주점")
+             and not BIG_NOISE.search(r["사업장명"])]
+big_ids = {r["관리번호"] for r in big_track}
+
+# 호텔 내 업소 제외 (유저 지시)
+HOTEL_RE = re.compile(r"호텔|쉐라톤|오라카이|홀리데이인|오크우드")
+HOTEL_LOTS = {"6-9", "38", "93-1", "33-1", "6-10", "10-2"}
+def in_hotel(name, addr):
+    return bool(HOTEL_RE.search((name or "") + " " + (addr or ""))) or lot_of(addr) in HOTEL_LOTS
+
+for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic + big_track}.values():
     if excluded_name(r["사업장명"]): continue
+    if in_hotel(r["사업장명"], r["지번주소"]): continue
     mid = r["관리번호"]
     kp = lic_kakao.get(mid); dp = lic_dc.get(mid)
     if kp: coords = {"lat": float(kp["y"]), "lng": float(kp["x"])}; src = "kakao"
@@ -204,7 +219,8 @@ for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic}.values():
                     coord_fixes.append(f"{r['사업장명']}: 지번 불일치({klot}≠{llot}) + {dm:.0f}m 이탈 → 오지점 판정, 지번 좌표로 보정·카카오 연결 해제")
                     coords = g; src = "geocode(보정)"; kp = None
     leaf = (kp.get("category_name", "").split(" > ")[-1] if kp else "")
-    big_nonpub = False
+    big_nonpub = (mid in big_ids and r["업태구분명"] not in PUB_TYPES
+                  and not re.search(r"호프|주점|펍|바|맥주|비어|라운지|와인|이자카야", norm(r["사업장명"]) + (leaf or "")))
     venues[f"lic:{mid}"] = {
         "name": name_override.get(mid) or (kp["place_name"] if kp else re.sub(r"^\s*(주식회사|유한회사|\(주\)|㈜|\(유\))\s*|\s*(\(주\)|㈜)\s*$", "", r["사업장명"]).strip() or r["사업장명"]),
         "lic_name": r["사업장명"] if kp and kp["place_name"] != r["사업장명"] else "",
@@ -218,6 +234,7 @@ for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic}.values():
 dropped = []
 for kp in kakao_unmatched:
     if excluded_name(kp["place_name"]): continue
+    if in_hotel(kp["place_name"], kp.get("address_name")): continue
     if is_closed(kp["place_name"], kp.get("address_name")):
         dropped.append("kakao:" + kp["place_name"]); continue
     leaf = kp.get("category_name", "").split(" > ")[-1]

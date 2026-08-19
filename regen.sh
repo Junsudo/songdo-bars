@@ -5,6 +5,7 @@ python3 prep_map.py
 python3 enrich_routes.py
 python3 enrich_phones.py
 python3 enrich_naver.py
+python3 crawl_seats.py
 python3 check_positions.py
 python3 - <<'PY'
 import json

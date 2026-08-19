@@ -4,3 +4,4 @@ map.html
 data/*
 !data/map_data.js
 __pycache__/
+!data/transit.js
