@@ -177,7 +177,7 @@ const markers = new Map();
 const radiusOf = v => v.area ? Math.max(6, Math.min(22, Math.sqrt(v.area) * 0.95)) : 6;
 function popupHtml(v) {
   const rows = [];
-  if (v.area) rows.push(`<div class="pop-kv">면적 <b>${v.area.toFixed(0)}㎡</b> · 추정 <b>${seats(v.area)}</b></div>`);
+  if (v.area) rows.push(`<div class="pop-kv">면적 <b>${v.area.toFixed(0)}㎡</b> · ${v.seat_confirmed ? "확인 <b>" + v.seat_confirmed + "석</b> (전화)" : "추정 <b>" + seats(v.area) + "</b>"}</div>`);
   rows.push(`<div class="pop-kv">🚶 도보 <b>${v.walk_min ?? "-"}분</b>${v.walk_km ? ` (${v.walk_km}km)` : ""} · 🚕 택시 <b>${v.taxi_min ?? "-"}분</b>${v.taxi_fare ? " · 약 " + fmtFare(v.taxi_fare) : ""}</div>`);
   if (v.uptae) rows.push(`<div class="pop-kv">인허가 업태 <b>${v.uptae}</b>${v.multi_use ? " · 다중이용업소" : ""}</div>`);
   if (v.naver_cat) rows.push(`<div class="pop-kv">네이버 <b>${v.naver_cat}</b></div>`);
@@ -261,7 +261,7 @@ function render() {
         <span class="walk">🚶${v.walk_min ?? "-"}분·🚕${v.taxi_min ?? "-"}분</span>
       </div>
       <div class="meta">
-        ${v.area ? v.area.toFixed(0) + "㎡ · " + seats(v.area) : "면적 미상"}
+        ${v.area ? v.area.toFixed(0) + "㎡ · " + (v.seat_confirmed ? "<b>확인 " + v.seat_confirmed + "석(전화)</b>" : seats(v.area)) : "면적 미상"}
         ${(v.area || 0) >= 200 ? '<span class="badge big">100석급</span>' : ""}
         ${v.multi_use ? '<span class="badge multi">다중이용업소</span>' : ""}
         ${v.licensed ? "" : '<span class="badge unlic">인허가 미매칭</span>'}

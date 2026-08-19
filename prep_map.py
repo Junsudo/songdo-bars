@@ -248,6 +248,12 @@ for kp in kakao_unmatched:
 json.dump(_geo_cache, open(f"{DATA}/geocode_cache.json", "w"))
 print(f"좌표 검증: 지번 대비 200m 초과 이탈 보정 {len(coord_fixes)}건")
 for c in coord_fixes: print("  !", c)
+# 전화로 직접 확인된 좌석수 (유저 실측) — 추정치보다 우선 표시
+CONFIRMED_SEATS = {"우후죽순": 90}
+for v in venues.values():
+    for k, n in CONFIRMED_SEATS.items():
+        if k in norm(v["name"]): v["seat_confirmed"] = n
+
 out = {"generated": "2026-08-18", "igc": IGC, "venues": list(venues.values())}
 open(f"{DATA}/map_data.js", "w", encoding="utf-8").write("window.MAP_DATA = " + json.dumps(out, ensure_ascii=False) + ";")
 from collections import Counter
