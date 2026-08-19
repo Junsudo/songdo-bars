@@ -106,7 +106,7 @@ for kp in kakao:
     else: kakao_unmatched.append(kp)
 
 # 더신더 케이스 보강: 비주점 업태(까페·기타·일식 등)로 등록된 진성 바 — 확인된 것만 명시 포함
-EXTRA_POI_NAMES = {"튜나펍", "고래맥주창고 송도점", "와인기대", "랍스터퍼블릭라운지", "제이라운지",
+EXTRA_POI_NAMES = {"튜나펍", "고래맥주창고 송도점", "와인기대", "제이라운지",
                    "홀리데이인인천송도 더라운지", "10.19갤러리&라운지", "데이롱카페 송도엑스포점 커피앤하이볼"}
 EXTRA_LIC_NORMS = {norm(x) for x in ["튜나펍(TUNA PUB)", "오라카이라운지",
                                        "로비라운지 파노라마(송도센트럴파크호텔)",
@@ -114,7 +114,7 @@ EXTRA_LIC_NORMS = {norm(x) for x in ["튜나펍(TUNA PUB)", "오라카이라운�
                                        "데이롱 카페 송도엑스포점 커피앤하이볼",
                                        # 경양식 등록 진성 바 (업태 제외 규칙보다 우선, 카카오 실재 확인분만)
                                        "앨리스피맥 송도아트포레점", "앨리스피맥",
-                                       "랍스터 퍼블릭 라운지", "와인기대", "제이라운지(J Lounge)",
+                                       "와인기대", "제이라운지(J Lounge)",
                                        "크라운호프 송도점",
                                        "파르크 드 와인 Parc de wine", "더몰트하우스 송도센트럴파크점"]}
 # 카카오·웹 어디에도 실체가 없는 인허가 전용 이름 — 지도 제외 (다올앤펍 사건)
@@ -181,27 +181,13 @@ pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
 extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS
              and (norm(r["사업장명"]), lot_of(r["지번주소"])) not in EXTRA_DROP_LOTS]  # 명시 목록은 업태 제외보다 우선
-# 대형(200㎡+) 트랙 — 회식 가능 대형 매장 (구내식당·카페·골프장류 노이즈 제외)
-BIG_NOISE = re.compile(r"구내|카페테리아|공사현장|골프|클럽하우스|스타트 ?하우스|베이커리|빵|브런치|투썸|할리스|아티제|커피|카페|제과|연세대|어린이")
-# 대형 트랙도 업태 제외 규칙 준수 + 대학생 회식과 안 맞는 종류 제거 (유저 지시)
-BIG_BAD_UPTAE = EXCLUDE_UPTAE | {"출장조리", "탕류(보신용)", "패밀리레스트랑", "냉면집", "까페", "일식"}
-BIG_BAD_NAME = re.compile(r"한정식|정식|초밥|스시|샤브|칼국수|국수|냉면|백반|가정식|브런치|돈가스|국밥|감자탕|보쌈|족발|횟집|생선|소고기|한우|급식|뷔페|죽|삼계탕|추어탕|해물탕|매운탕|우육면|훠궈|돈까스|카레|덮밥|비빔밥|보리밥|들밥|정육")
-# 개별 부적합 판정분 (유저 확인: 300㎡ 초과분 전수 검토 결과 전원 회식 부적합)
-BIG_DROP_NAMES = {norm(x) for x in ["윤에프앤비", "잇츠네이처", "해원 송도본점", "팔진향 한옥마을점(주)엔타스에스디",
-    "채궁", "왕십리 조개창고", "천상현국가공인진갈비 롯데마트 인천송도점", "미식여행", "송도베이",
-    "건강밥상 심마니", "장어촌", "플러스앤시스템", "제이에스(JS)가든 송도점", "청담"]}
-big_track = [r for r in songdo if area_of(r) >= 200 and r["업태구분명"] not in BIG_BAD_UPTAE
-             and not BIG_NOISE.search(r["사업장명"]) and not BIG_BAD_NAME.search(r["사업장명"])
-             and norm(r["사업장명"]) not in BIG_DROP_NAMES]
-big_ids = {r["관리번호"] for r in big_track}
-
 # 호텔 내 업소 제외 (유저 지시)
 HOTEL_RE = re.compile(r"호텔|쉐라톤|오라카이|홀리데이인|오크우드")
 HOTEL_LOTS = {"6-9", "38", "93-1", "33-1", "6-10", "10-2"}
 def in_hotel(name, addr):
     return bool(HOTEL_RE.search((name or "") + " " + (addr or ""))) or lot_of(addr) in HOTEL_LOTS
 
-for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic + big_track}.values():
+for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic}.values():
     if excluded_name(r["사업장명"]): continue
     if in_hotel(r["사업장명"], r["지번주소"]): continue
     mid = r["관리번호"]
@@ -227,8 +213,7 @@ for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic + big_track}.value
                     coord_fixes.append(f"{r['사업장명']}: 지번 불일치({klot}≠{llot}) + {dm:.0f}m 이탈 → 오지점 판정, 지번 좌표로 보정·카카오 연결 해제")
                     coords = g; src = "geocode(보정)"; kp = None
     leaf = (kp.get("category_name", "").split(" > ")[-1] if kp else "")
-    big_nonpub = (mid in big_ids and r["업태구분명"] not in PUB_TYPES
-                  and not re.search(r"호프|주점|펍|바|맥주|비어|라운지|와인|이자카야", norm(r["사업장명"]) + (leaf or "")))
+    big_nonpub = False
     venues[f"lic:{mid}"] = {
         "name": name_override.get(mid) or (kp["place_name"] if kp else re.sub(r"^\s*(주식회사|유한회사|\(주\)|㈜|\(유\))\s*|\s*(\(주\)|㈜)\s*$", "", r["사업장명"]).strip() or r["사업장명"]),
         "lic_name": r["사업장명"] if kp and kp["place_name"] != r["사업장명"] else "",
@@ -239,6 +224,18 @@ for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic + big_track}.value
         "licensed": True, "multi_use": (r["다중이용업소여부"] or "").strip() == "Y",
         "kakao_url": kp.get("place_url") if kp else "", "kjibun": (kp.get("address_name") or "") if kp else "", "coord_src": src, **coords,
     }
+recovered = []
+for kp in list(kakao_unmatched):
+    _lot = lot_of(kp.get("address_name"))
+    if not _lot: continue
+    _c = [r for r in by_lot.get(_lot, []) if r["업태구분명"] in PUB_TYPES and r["관리번호"] not in lic_kakao]
+    if len(_c) == 1 and "술집" in kp.get("category_name", ""):
+        _r = _c[0]
+        lic_kakao[_r["관리번호"]] = kp; name_override[_r["관리번호"]] = kp["place_name"]
+        kakao_unmatched.remove(kp); recovered.append(kp["place_name"])
+        if _r not in pubs: pubs.append(_r)
+if recovered: print("지번 단독 결합 면적 회수 " + str(len(recovered)) + "곳: " + ", ".join(recovered[:8]))
+
 dropped = []
 for kp in kakao_unmatched:
     if excluded_name(kp["place_name"]): continue

@@ -109,7 +109,7 @@
 </div>
 <script>
 const D = window.MAP_DATA;
-const CAT_COLOR = { "호프·펍": "#2a78d6", "이자카야": "#eb6834", "포차·주점": "#1baf7a", "바·라운지": "#e87ba4", "대형(200㎡+)": "#4a3aa7" };
+const CAT_COLOR = { "호프·펍": "#2a78d6", "이자카야": "#eb6834", "포차·주점": "#1baf7a", "바·라운지": "#e87ba4" };
 const CATS = Object.keys(CAT_COLOR);
 const R = 6371000;
 const MOBILE = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
@@ -163,7 +163,8 @@ T.stations.forEach(s => L.circleMarker([s.lat, s.lng], { radius: 5.5, color: "#3
   .bindTooltip(s.name, { direction: "top" }).addTo(subwayG));
 subwayG.addTo(map);
 const busG = L.layerGroup();
-T.bus42.forEach(s => L.circleMarker([s.lat, s.lng], { radius: 4, color: "#fff", weight: 1.2, fillColor: "#2c9f45", fillOpacity: .95 })
+if (T.bus42_line && T.bus42_line.length) L.polyline(T.bus42_line, { color: "#5bb025", weight: 3.5, opacity: .8, interactive: false }).addTo(busG);
+T.bus42.forEach(s => L.circleMarker([s.lat, s.lng], { radius: 4.5, color: "#3e8c17", weight: 2.5, fillColor: "#fff", fillOpacity: 1 })
   .bindTooltip("순환42 · " + s.name, { direction: "top" }).addTo(busG));
 busG.addTo(map);
 const igcIcon = L.divIcon({ className: "", html: `<div style="width:26px;height:26px;border-radius:50%;background:#0b0b0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.4)">IGC</div>`, iconSize: [26,26], iconAnchor: [13,13] });
