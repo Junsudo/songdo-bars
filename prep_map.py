@@ -116,7 +116,7 @@ EXTRA_LIC_NORMS = {norm(x) for x in ["튜나펍(TUNA PUB)", "오라카이라운�
                                        "앨리스피맥 송도아트포레점", "앨리스피맥",
                                        "와인기대", "제이라운지(J Lounge)",
                                        "크라운호프 송도점",
-                                       "파르크 드 와인 Parc de wine", "더몰트하우스 송도센트럴파크점"]}
+                                       "파르크 드 와인 Parc de wine"]}
 # 카카오·웹 어디에도 실체가 없는 인허가 전용 이름 — 지도 제외 (다올앤펍 사건)
 EXTRA_DROP_LOTS = {("앨리스피맥", "30-2")}
 try: ce7 = json.load(open(f"{DATA}/kakao_ce7.json"))
