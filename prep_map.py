@@ -204,10 +204,12 @@ for r in {id(x): x for x in pubs + kakao_bars_lic + extra_lic}.values():
                     coords = g; src = "geocode(보정)"; kp = None
     leaf = (kp.get("category_name", "").split(" > ")[-1] if kp else "")
     big_nonpub = False
+    _cat = classify(r["업태구분명"], leaf, "", big_nonpub)
+    if _cat == "바·라운지": continue  # CRITERIA: 와인·칵테일·위스키·라운지류 전면 제외 (2026-08-19)
     venues[f"lic:{mid}"] = {
         "name": name_override.get(mid) or (kp["place_name"] if kp else re.sub(r"^\s*(주식회사|유한회사|\(주\)|㈜|\(유\))\s*|\s*(\(주\)|㈜)\s*$", "", r["사업장명"]).strip() or r["사업장명"]),
         "lic_name": r["사업장명"] if kp and kp["place_name"] != r["사업장명"] else "",
-        "cat": classify(r["업태구분명"], leaf, "", big_nonpub),
+        "cat": _cat,
         "uptae": r["업태구분명"], "area": area_of(r) or None,
         "phone": r["전화번호"] or (kp.get("phone") if kp else "") or "",
         "road": r["도로명주소"] or "", "jibun": r["지번주소"] or "",
@@ -233,8 +235,10 @@ for kp in kakao_unmatched:
     if is_closed(kp["place_name"], kp.get("address_name")):
         dropped.append("kakao:" + kp["place_name"]); continue
     leaf = kp.get("category_name", "").split(" > ")[-1]
+    _cat = classify("", leaf, "", False)
+    if _cat == "바·라운지": continue
     venues[f"kko:{kp['id']}"] = {
-        "name": kp["place_name"], "cat": classify("", leaf, "", False), "uptae": "",
+        "name": kp["place_name"], "cat": _cat, "uptae": "",
         "area": None, "phone": kp.get("phone") or "", "road": kp.get("road_address_name") or "",
         "jibun": kp.get("address_name") or "", "licensed": False, "multi_use": False,
         "kakao_url": kp.get("place_url") or "",

@@ -45,6 +45,7 @@ Notes.
 | Hotels | Name/address contains 호텔·쉐라톤·오라카이·홀리데이인·오크우드, or lot in {6-9, 38, 93-1, 33-1, 6-10, 10-2} |
 | Ghosts | Unmatched POI whose name/lot matches the closed-license register |
 | Kakao category | 나이트, 클럽 |
+| Map category | 바·라운지 entirely (와인·칵테일·위스키·하이볼·라운지·재즈·LP) — fails rows 2·4 |
 | Naver category (non-pub 업태) | 베이커리, 제과, 급식, 도시락, 반찬, 샐러드, 카페·디저트, 낙지, 주꾸미, 바닷가재, 이탈리아, 그리스, 태국, 멕시코, 남미, plus 한정식·소고기·생선·초밥·샤브·국수류 for any restaurant-type entry |
 | Named rejects | 제우스볼펍(bowling), 헌팅*, 다올앤펍(license-only ghost), 스월링라운지, 스낵얌, 앨리스피맥 30-2 (all zero-evidence), 더몰트하우스(whisky pub), 랍스터퍼블릭라운지, 와인기대, 파르크드와인, 제이라운지, 10.19, 데이롱, 튜나펍, 쎄시봉 (specialty, owner-rejected), 쉐이크쉑 |
 
@@ -66,4 +67,5 @@ Notes.
 - 2026-08-19 Hotels excluded wholesale (owner order).
 - 2026-08-19 감성주점 excluded as hunting-pocha proxy (owner order, important).
 - 2026-08-19 "Large venue" track abolished: every 200㎡+ non-pub candidate failed owner review. Big-venue search happens inside the pub pool via the area filter.
+- 2026-08-19 바·라운지 category removed wholesale (owner order, item 1).
 - 2026-08-19 Specialty small bars (wine/whisky/lounge/highball) fail the use case even when individually verified as real bars. Curation must test against the use case, not venue authenticity.
