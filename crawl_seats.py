@@ -11,6 +11,7 @@ except Exception: cache = {}
 
 SEAT = re.compile(r"(\d{2,3})\s*석")
 GROUP = re.compile(r"단체\s*(\d{2,3})\s*[명인]")
+MENU = re.compile(r"([가-힣A-Za-z·&\s]{2,14}?)\s{0,2}([1-9]\d?[,.]?\d{3})\s*원")
 
 def crawl(name):
     q = urllib.parse.quote(re.sub(r"\(.*?\)", "", name).strip() + " 송도")
@@ -22,8 +23,16 @@ def crawl(name):
         return None  # 차단/실패
     seats = [int(m) for m in SEAT.findall(out) if 20 <= int(m) <= 400]
     groups = [int(m) for m in GROUP.findall(out) if 10 <= int(m) <= 300]
+    from collections import Counter
+    menus = Counter()
+    for nm2, pr in MENU.findall(out):
+        nm2 = nm2.strip()
+        p = int(pr.replace(",", "").replace(".", ""))
+        if 3000 <= p <= 60000 and len(nm2) >= 2 and not re.search(r"원|배달|최소|쿠폰|할인|포인트|적립|추가", nm2):
+            menus[f"{nm2} {p:,}원"] += 1
     return {"seat_max": max(seats) if seats else None, "seat_n": len(seats),
-            "group_max": max(groups) if groups else None}
+            "group_max": max(groups) if groups else None,
+            "menus": [m for m, _ in menus.most_common(4)]}
 
 def norm(s):
     s = unicodedata.normalize("NFKC", str(s or "")).lower()
@@ -31,7 +40,7 @@ def norm(s):
 
 done = blocked = 0
 for v in data["venues"]:
-    key = norm(v["name"])
+    key = "v2|" + norm(v["name"])
     if key not in cache:
         rec = crawl(v["name"])
         if rec is None:
@@ -47,9 +56,12 @@ for v in data["venues"]:
     rec = cache.get(key) or {}
     v["seat_blog"] = rec.get("seat_max")
     v["group_blog"] = rec.get("group_max")
+    v["menu_blog"] = rec.get("menus") or []
 
 json.dump(cache, open("data/seats_cache.json", "w"))
 open("data/map_data.js", "w", encoding="utf-8").write(PREFIX + json.dumps(data, ensure_ascii=False) + ";")
+m = sum(1 for v in data["venues"] if v.get("menu_blog"))
+print(f"메뉴 언급 확보 {m}곳")
 n = sum(1 for v in data["venues"] if v.get("seat_blog"))
 g = sum(1 for v in data["venues"] if v.get("group_blog"))
 print(f"좌석 언급 확보 {n}곳, 단체 인원 언급 {g}곳 (신규 조회 {done}, 실패 {blocked})")
