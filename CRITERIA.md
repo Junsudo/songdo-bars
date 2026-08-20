@@ -33,7 +33,7 @@ Notes.
 | Source | Rule |
 |---|---|
 | License register (alive, Songdo-dong) | 업태 in {호프/통닭, 정종/대포집/소주방} |
-| Kakao FD6 `술집` category | If matched to an alive license (any 업태 not excluded below) |
+| Kakao FD6 `술집` category | If matched to an alive license — **Kakao classification governs**: 업태 exclusions below do NOT apply to Kakao-matched bars (owner order 2026-08-20). Named rejects, 나이트/클럽, 바·라운지 still apply |
 | Kakao FD6 `치킨` category | Only if matched license ≥ 100㎡, or alias-verified (또봉이=브루엠) |
 | Curated allowlist | 앨리스피맥 (23-5, 84-2), 크라운호프 송도점 — pimac/hof only |
 
@@ -68,4 +68,5 @@ Notes.
 - 2026-08-19 감성주점 excluded as hunting-pocha proxy (owner order, important).
 - 2026-08-19 "Large venue" track abolished: every 200㎡+ non-pub candidate failed owner review. Big-venue search happens inside the pub pool via the area filter.
 - 2026-08-19 바·라운지 category removed wholesale (owner order, item 1).
+- 2026-08-20 Kakao classification made authoritative for kakao-matched venues; license 업태 exclusions apply only to unmatched/licensed-only entries (owner order).
 - 2026-08-19 Specialty small bars (wine/whisky/lounge/highball) fail the use case even when individually verified as real bars. Curation must test against the use case, not venue authenticity.

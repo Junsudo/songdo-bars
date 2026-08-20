@@ -175,7 +175,7 @@ venues = {}; geocoded = 0; coord_fixes = []
 EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점", "라이브카페",
                  "외국음식전문점(인도,태국등)", "탕류(보신용)", "패밀리레스트랑", "냉면집", "출장조리"}  # CRITERIA.md Exclude 표와 1:1 동기화
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
-kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
+kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao]  # 카카오 분류 우선(유저 지시 2026-08-20): 카카오가 술집이면 업태 제외 우회. 이름 블록리스트·나이트/클럽·바·라운지 제외는 유지
 extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS
              and (norm(r["사업장명"]), lot_of(r["지번주소"])) not in EXTRA_DROP_LOTS]  # 명시 목록은 업태 제외보다 우선
 # 호텔 내 업소 제외 (유저 지시)
