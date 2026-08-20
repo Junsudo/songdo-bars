@@ -19,7 +19,8 @@ Songdo bar map for university club dinners. Live: https://junsudo.github.io/song
 | 2 | `enrich_routes.py` | Walk = OSRM foot (routing.openstreetmap.de), taxi = Kakao Navi (time+fare). Cache: `data/routes_cache.json` |
 | 3 | `enrich_phones.py` | Phone fill via Kakao keyword search |
 | 4 | `enrich_naver.py` | Naver presence/category + global category drops |
-| 5 | `crawl_seats.py` | Blog seat + menu-price mentions (menus ~110 hits, seats thin) |
+| 5 | `crawl_seats.py` | Blog seat mentions (thin) |
+| 5b | `enrich_menus.py` | Official Kakao menus via place-api panel3 — needs `pf: web` header (curl 406 without it) |
 | 6 | `check_positions.py` | Reverse-geocode audit of every venue |
 
 `build_xlsx` logic lives inline in history; xlsx is generated from `data/map_data.js`, not from raw sources.
