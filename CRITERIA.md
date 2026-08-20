@@ -7,8 +7,26 @@ Governing document. Every pipeline rule traces to a line here. When a rule and t
 | Item | Value |
 |---|---|
 | Use case | University club dinners (회식/개강총회), ~100 people, IGC-based |
-| Deciding question | "Can a student club hold a drinking dinner here?" — NOT "is it a bar?" |
-| Owner ruling | Specialty venues fail even if they serve alcohol: whisky pubs, wine bars, lounges, live cafes, hunting pochas |
+| Deciding question | "Can a student club hold a loud, cheap, soju/beer dinner here?" — NOT "is it a bar?" |
+
+## Deciding test
+
+A venue passes only if it passes EVERY row. One failed row = out.
+
+| # | Test | PASS looks like | FAIL looks like |
+|---|---|---|---|
+| 1 | Role of alcohol | Soju/beer is the point, or equal to the food: 호프, 포차, 이자카야, 요리주점, 치킨호프, 피맥, 조개·안주집 | A sober dinner there is normal: 백반, 국밥, 한정식, 정식, 구이 전문(소고기·생선), 초밥, 뷔페, 브런치, 버거, 외국요리 전문(파스타·그리스·태국·멕시코) |
+| 2 | Price per head | ~₩20-30k covers 안주+술; soju/beer sold by the bottle at bottle prices | Premium liquor core, glass pricing: 위스키, 와인, 칵테일, 하이볼 전문, craft flights, 코스/오마카세, hotel F&B |
+| 3 | Seating structure | Open hall; tables can be pushed together; 20-40 people seat in one section | Bar-counter centric, booth/room-only, standing, gallery/전시형 |
+| 4 | Noise | Group toasts and shouting are normal there | Quiet/date ambience expected: 와인바, 라운지, 재즈바, LP바 |
+| 5 | Operation type | Ordinary table service | Dance/booking floor (감성주점, 헌팅포차, 클럽, 나이트), performance-watching (라이브카페), membership/reservation-only |
+| 6 | Hours | Evening-to-late (자정 전후까지) | Closes ~21-22h: mall food courts, cafes, bakeries |
+
+Notes.
+- No per-venue minimum size: 100 people can split across sections or venues. Size is handled by the area filter, not the deciding test.
+- Signal conflicts (e.g., izakaya with a sushi Naver category): row 1 decides. Still unclear → ask the owner. Never include silently.
+- Calibration anchors, PASS (owner-verified): 부엉이산장, 우후죽순 (90석 phone-confirmed), 88노가리, 단토리, 역전할머니맥주, 앨리스피맥, 크라운호프.
+- Calibration anchors, FAIL (owner-rejected): 더몰트하우스 (whisky), 와인기대, 파르크드와인, 데이롱 (highball cafe), 튜나펍, 쎄시봉 (live cafe), 랍스터퍼블릭라운지, 제이라운지, 10.19, 쉐이크쉑, 경복궁 삼계탕, 파노라믹65, hotel venues.
 
 ## Include
 
