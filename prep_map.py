@@ -172,7 +172,8 @@ EXCLUDE_NAMES = {"제우스볼펍", "헌팅",
 EXCLUDE_EXACT = {norm(x) for x in ["엘", "한일도", "대양주"]}  # 개별 제외 (유저 지시, 정확 일치 — '엘'이 더샵엘테라스 등 오폭 방지)
 def excluded_name(nm): return any(x in norm(nm) for x in EXCLUDE_NAMES) or norm(nm) in EXCLUDE_EXACT
 venues = {}; geocoded = 0; coord_fixes = []
-EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점", "라이브카페", "외국음식전문점(인도,태국등)"}  # 감성주점=춤 허용(헌팅포차류)
+EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점", "라이브카페",
+                 "외국음식전문점(인도,태국등)", "탕류(보신용)", "패밀리레스트랑", "냉면집", "출장조리"}  # CRITERIA.md Exclude 표와 1:1 동기화
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
 extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS
