@@ -276,6 +276,12 @@ PARTY_NOTES = {
     "플레이그라운드 브루어리 브루펍 송도": "멤버 언급",
 }
 PARTY_ONLY = {"더신더바", "탄트라", "다이어메이커", "홀리데이인인천송도 터치스카이루프탑바", "모나코", "126F&B", "카페에디토레"}
+# 자동 발굴(미실사) — 파티 개연성 신호(칵테일·와인바·라운지·재즈·대형)로 추린 후보. 멤버 검증 전.
+PARTY_AUTO = {"째즈257", "연금술사 송도점", "오늘와인한잔 송도트리플스트리트점", "타펠 룬데 서울 송도점",
+              "프로그앤코", "캐스크앤뀌베&Bar 인천송도점", "클로바", "더킹스 송도", "모닝스타137",
+              "블루아이즈", "VIP", "VIP바 2호점", "원일레븐 WINE & DINE", "후레이", "자늑",
+              "더라운지 송도", "라운지25", "오크우드프리미어인천 오크바"}
+PARTY_ONLY = PARTY_ONLY | PARTY_AUTO
 _pn = {norm(k): v for k, v in PARTY_NOTES.items()}
 for v in venues.values():
     note = _pn.get(norm(v["name"]))
@@ -295,7 +301,7 @@ for x in json.load(open(f"{DATA}/kakao_fd6_all.json")) + ce7:
         "licensed": bool(r), "multi_use": False,
         "kakao_url": x.get("place_url") or "", "kjibun": x.get("address_name") or "",
         "coord_src": "kakao", "lat": float(x["y"]), "lng": float(x["x"]),
-        "party": True, "party_only": True, "party_note": PARTY_NOTES.get(x["place_name"], "멤버 후보"),
+        "party": True, "party_only": True, "party_note": PARTY_NOTES.get(x["place_name"], "자동 발굴 후보(미실사)"),
     }
 print("파티 트랙:", sum(1 for v in venues.values() if v.get("party")), "곳 (전용", sum(1 for v in venues.values() if v.get("party_only")), ")")
 
