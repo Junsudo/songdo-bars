@@ -93,10 +93,9 @@
     <div class="row" id="cats"></div>
     <div class="row">
       <label class="toggle"><input type="checkbox" id="f-big"> 100석급(200㎡+)만</label>
-      <label class="toggle"><input type="checkbox" id="f-naver"> 네이버 등록만</label>
       <span id="count"></span>
     </div>
-    <div class="row" id="srcs" style="font-size:12px"><span style="color:var(--text-3);font-size:12px">출처</span></div>
+    <div class="row" id="srcs" style="font-size:12px"><span style="color:var(--text-3);font-size:12px">출처(선택=필수조건)</span></div>
   </div>
   <div id="list"></div>
 </div>
@@ -180,9 +179,11 @@ L.marker([D.igc.lat, D.igc.lng], { icon: igcIcon, zIndexOffset: 1000 }).addTo(ma
 });
 
 // ── 마커 ──
-const state = { cats: new Set(CATS), big: false, naver: false, q: "", sort: "walk", srcs: new Set(["both", "lic", "kko"]), minArea: 0 };
-const SRC_LABEL = { both: "인허가+카카오", lic: "인허가만", kko: "카카오만" };
-const srcOf = v => !v.licensed ? "kko" : (v.kakao_url || v.coord_src === "kakao") ? "both" : "lic";
+const state = { cats: new Set(CATS), big: false, q: "", sort: "walk", minArea: 0,
+  req: { lic: false, kko: false, nvr: false, unlic: false } };
+const REQ_LABEL = { lic: "인허가", kko: "카카오", nvr: "네이버", unlic: "미매칭만" };
+const hasSrc = (v, k) => k === "lic" ? v.licensed : k === "kko" ? !!(v.kakao_url || v.coord_src === "kakao")
+  : k === "nvr" ? !!v.naver_ok : !v.licensed;
 const markers = new Map();
 const radiusOf = v => v.area ? Math.max(6, Math.min(22, Math.sqrt(v.area) * 0.95)) : 6;
 function popupHtml(v) {
@@ -223,7 +224,6 @@ CATS.forEach(c => {
 $("#q").oninput = e => { state.q = e.target.value.trim(); render(); };
 $("#sort").onchange = e => { state.sort = e.target.value; render(); };
 $("#f-big").onchange = e => { state.big = e.target.checked; render(); };
-$("#f-naver").onchange = e => { state.naver = e.target.checked; render(); };
 const areaCtl = document.getElementById("areaCtl");
 L.DomEvent.disableClickPropagation(areaCtl); L.DomEvent.disableScrollPropagation(areaCtl);
 const AMAX = Math.ceil(Math.max(...D.venues.map(v => v.area || 0)) / 10) * 10;
@@ -242,12 +242,12 @@ $("#areaMax").oninput = e => {
   state.maxArea = Math.max(+e.target.value, state.minArea); e.target.value = state.maxArea;
   areaLabel(); render();
 };
-Object.entries(SRC_LABEL).forEach(([k, label]) => {
+Object.entries(REQ_LABEL).forEach(([k, label]) => {
   const el = document.createElement("span");
-  el.className = "chip on";
+  el.className = "chip";
   el.textContent = label;
-  el.onclick = () => { state.srcs.has(k) ? state.srcs.delete(k) : state.srcs.add(k); el.classList.toggle("off", !state.srcs.has(k)); render(); };
-  $("#srcs").appendChild(el);
+  el.onclick = () => { state.req[k] = !state.req[k]; el.classList.toggle("on", state.req[k]); render(); };
+  document.querySelector("#srcs").appendChild(el);
 });
 
 const SORTS = {
@@ -261,9 +261,8 @@ function visible() {
   return D.venues.filter(v =>
     state.cats.has(v.cat) &&
     (!state.big || (v.area || 0) >= 200) &&
-    (!state.naver || v.naver_ok) &&
+    Object.keys(state.req).every(k => !state.req[k] || hasSrc(v, k)) &&
     ((!state.minArea && state.maxArea >= AMAX) || (v.area && v.area >= state.minArea && v.area <= state.maxArea)) &&
-    state.srcs.has(srcOf(v)) &&
     (!state.q || v.name.toLowerCase().includes(state.q.toLowerCase()))
   ).sort(SORTS[state.sort]);
 }

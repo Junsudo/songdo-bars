@@ -91,6 +91,12 @@ dropped = [v["name"] for v in data["venues"] if bad_v(v) or (v.get("cat") == "�
 data["venues"] = [v for v in data["venues"] if not (bad_v(v) or (v.get("cat") == "대형(200㎡+)" and BAD_CAT.search(v.get("naver_cat") or "")))]
 if dropped: print(f"대형 트랙 네이버 분류 부적합 제거 {len(dropped)}곳:", ", ".join(dropped[:10]), "…" if len(dropped) > 10 else "")
 
+# 카카오·네이버 어느 쪽에도 없는 항목 제거 — 실질 폐업 추정 (유저 지시)
+def has_kakao(v): return bool(v.get("kakao_url") or v.get("coord_src") == "kakao")
+ghosts = [v["name"] for v in data["venues"] if not has_kakao(v) and not v.get("naver_ok")]
+data["venues"] = [v for v in data["venues"] if has_kakao(v) or v.get("naver_ok")]
+if ghosts: print(f"카카오·네이버 모두 부재 제거 {len(ghosts)}곳:", ", ".join(ghosts[:12]), "…" if len(ghosts) > 12 else "")
+
 json.dump(cache, open("data/naver_cache.json", "w"))
 open("data/map_data.js", "w", encoding="utf-8").write(PREFIX + json.dumps(data, ensure_ascii=False) + ";")
 print(f"네이버 등록 확인 {found}/{len(data['venues'])}, 좌표 300m 초과 {far}건")
