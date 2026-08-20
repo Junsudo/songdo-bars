@@ -169,7 +169,7 @@ EXCLUDE_NAMES = {"제우스볼펍", "헌팅",
     "용호동낙지", "으뜸착한낙지", "송쭈집", "수블라키아", "엉클인더키친", "밥상편지", "블루오션한식",
     "주가코다리", "몰트하우스", "랍스터퍼블릭", "와인기대", "파르크드와인", "제이라운지", "1019", "데이롱",
     "튜나펍", "쎄시봉", "쉐이크쉑", "다올앤펍", "스월링라운지", "스낵얌"}
-EXCLUDE_EXACT = {norm(x) for x in ["엘", "한일도", "대양주"]}  # 개별 제외 (유저 지시, 정확 일치 — '엘'이 더샵엘테라스 등 오폭 방지)
+EXCLUDE_EXACT = {norm(x) for x in ["엘", "한일도", "대양주", "kmgm 송도신도시점", "케이엠지엠(KMGM) 송도신도시점"]}  # 개별 제외 (유저 지시, 정확 일치 — '엘'이 더샵엘테라스 등 오폭 방지)
 def excluded_name(nm): return any(x in norm(nm) for x in EXCLUDE_NAMES) or norm(nm) in EXCLUDE_EXACT
 venues = {}; geocoded = 0; coord_fixes = []
 EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점", "라이브카페",
@@ -259,6 +259,45 @@ CONFIRMED_SEATS = {"우후죽순": 90}
 for v in venues.values():
     for k, n in CONFIRMED_SEATS.items():
         if k in norm(v["name"]): v["seat_confirmed"] = n
+
+# ── 파티 트랙 (멤버 카톡 실사 후보) — 회식 CRITERIA와 별개, 파티 토글에서만 표시 ──
+PARTY_NOTES = {
+    "탄트라": "멤버 실사: 인앤아웃 100명 가능, 은근 괜찮았음",
+    "더신더바": "멤버 최종 후보",
+    "다이어메이커": "멤버 최종 후보 · 테라스 있음",
+    "카페에디토레": "멤버 최종 후보 · 학교앞",
+    "홀리데이인인천송도 터치스카이루프탑바": "멤버 평: 엄청 예쁜 느낌은 아닌 듯",
+    "모나코": "멤버 평: 화이트 파티 느낌은 잘 안 살 듯",
+    "126F&B": "멤버 언급(126 Street)",
+    "불독펍": "멤버 언급",
+    "레드문": "멤버 평: 애매",
+    "레드문 센트럴파크점": "멤버 언급(캠퍼스타운)",
+    "플레이그라운드 브루어리탭룸 송도점": "멤버 언급",
+    "플레이그라운드 브루어리 브루펍 송도": "멤버 언급",
+}
+PARTY_ONLY = {"더신더바", "탄트라", "다이어메이커", "홀리데이인인천송도 터치스카이루프탑바", "모나코", "126F&B", "카페에디토레"}
+_pn = {norm(k): v for k, v in PARTY_NOTES.items()}
+for v in venues.values():
+    note = _pn.get(norm(v["name"]))
+    if note is not None:
+        v["party"] = True; v["party_note"] = note
+_have_names = {norm(v["name"]) for v in venues.values()}
+for x in json.load(open(f"{DATA}/kakao_fd6_all.json")) + ce7:
+    if x["place_name"] not in PARTY_ONLY: continue
+    if "송도동" not in (x.get("address_name") or ""): continue
+    if norm(x["place_name"]) in _have_names: continue
+    r = match(x["place_name"], "", x.get("address_name"))
+    venues[f"pty:{x['id']}"] = {
+        "name": x["place_name"], "cat": "파티", "uptae": (r["업태구분명"] if r else ""),
+        "area": (area_of(r) or None) if r else None,
+        "phone": (r["전화번호"] if r else "") or x.get("phone") or "",
+        "road": x.get("road_address_name") or "", "jibun": x.get("address_name") or "",
+        "licensed": bool(r), "multi_use": False,
+        "kakao_url": x.get("place_url") or "", "kjibun": x.get("address_name") or "",
+        "coord_src": "kakao", "lat": float(x["y"]), "lng": float(x["x"]),
+        "party": True, "party_only": True, "party_note": PARTY_NOTES.get(x["place_name"], "멤버 후보"),
+    }
+print("파티 트랙:", sum(1 for v in venues.values() if v.get("party")), "곳 (전용", sum(1 for v in venues.values() if v.get("party_only")), ")")
 
 out = {"generated": "2026-08-18", "igc": IGC, "venues": list(venues.values())}
 open(f"{DATA}/map_data.js", "w", encoding="utf-8").write("window.MAP_DATA = " + json.dumps(out, ensure_ascii=False) + ";")

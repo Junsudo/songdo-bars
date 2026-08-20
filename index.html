@@ -93,6 +93,7 @@
     <div class="row" id="cats"></div>
     <div class="row">
       <label class="toggle"><input type="checkbox" id="f-big"> 100석급(200㎡+)만</label>
+      <label class="toggle"><input type="checkbox" id="f-party"> 파티 후보만</label>
       <span id="count"></span>
     </div>
     <div class="row" id="srcs" style="font-size:12px"><span style="color:var(--text-3);font-size:12px">출처(선택=필수조건)</span></div>
@@ -111,7 +112,7 @@
 </div>
 <script>
 const D = window.MAP_DATA;
-const CAT_COLOR = { "호프·펍": "#2a78d6", "이자카야": "#eb6834", "포차·주점": "#1baf7a" };
+const CAT_COLOR = { "호프·펍": "#2a78d6", "이자카야": "#eb6834", "포차·주점": "#1baf7a", "파티": "#4a3aa7" };
 const CATS = Object.keys(CAT_COLOR);
 const R = 6371000;
 const MOBILE = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
@@ -179,7 +180,7 @@ L.marker([D.igc.lat, D.igc.lng], { icon: igcIcon, zIndexOffset: 1000 }).addTo(ma
 });
 
 // ── 마커 ──
-const state = { cats: new Set(CATS), big: false, q: "", sort: "walk", minArea: 0,
+const state = { cats: new Set(CATS), big: false, party: false, q: "", sort: "walk", minArea: 0,
   req: { lic: false, kko: false, nvr: false, unlic: false } };
 const REQ_LABEL = { lic: "인허가", kko: "카카오", nvr: "네이버", unlic: "미매칭만" };
 const hasSrc = (v, k) => k === "lic" ? v.licensed : k === "kko" ? !!(v.kakao_url || v.coord_src === "kakao")
@@ -190,6 +191,7 @@ function popupHtml(v) {
   const rows = [];
   if (v.area) rows.push(`<div class="pop-kv">면적 <b>${v.area.toFixed(0)}㎡</b> · ${v.seat_confirmed ? "확인 <b>" + v.seat_confirmed + "석</b> (전화)" : "추정 <b>" + seats(v.area) + "</b>"}</div>`);
   rows.push(`<div class="pop-kv">🚶 도보 <b>${v.walk_min ?? "-"}분</b>${v.walk_km ? ` (${v.walk_km}km)` : ""} · 🚕 택시 <b>${v.taxi_min ?? "-"}분</b>${v.taxi_fare ? " · 약 " + fmtFare(v.taxi_fare) : ""}</div>`);
+  if (v.party_note) rows.push(`<div class="pop-kv">파티 메모 <b>${v.party_note}</b></div>`);
   if (v.uptae) rows.push(`<div class="pop-kv">인허가 업태 <b>${v.uptae}</b>${v.multi_use ? " · 다중이용업소" : ""}</div>`);
   if (v.naver_cat) rows.push(`<div class="pop-kv">네이버 <b>${v.naver_cat}</b></div>`);
   const mm = (v.menus && v.menus.length) ? [v.menus, "카카오"] : (v.menus_nv && v.menus_nv.length) ? [v.menus_nv, "네이버"] : null;
@@ -225,6 +227,7 @@ CATS.forEach(c => {
 $("#q").oninput = e => { state.q = e.target.value.trim(); render(); };
 $("#sort").onchange = e => { state.sort = e.target.value; render(); };
 $("#f-big").onchange = e => { state.big = e.target.checked; render(); };
+$("#f-party").onchange = e => { state.party = e.target.checked; render(); };
 const areaCtl = document.getElementById("areaCtl");
 L.DomEvent.disableClickPropagation(areaCtl); L.DomEvent.disableScrollPropagation(areaCtl);
 const AMAX = Math.ceil(Math.max(...D.venues.map(v => v.area || 0)) / 10) * 10;
@@ -261,6 +264,8 @@ const SORTS = {
 function visible() {
   return D.venues.filter(v =>
     state.cats.has(v.cat) &&
+    (!v.party_only || state.party) &&
+    (!state.party || v.party) &&
     (!state.big || (v.area || 0) >= 200) &&
     Object.keys(state.req).every(k => !state.req[k] || hasSrc(v, k)) &&
     ((!state.minArea && state.maxArea >= AMAX) || (v.area && v.area >= state.minArea && v.area <= state.maxArea)) &&
@@ -283,6 +288,7 @@ function render() {
         ${v.area ? v.area.toFixed(0) + "㎡ · " + (v.seat_confirmed ? "<b>확인 " + v.seat_confirmed + "석(전화)</b>" : seats(v.area)) : "면적 미상"}
         ${(v.area || 0) >= 200 ? '<span class="badge big">100석급</span>' : ""}
         ${v.multi_use ? '<span class="badge multi">다중이용업소</span>' : ""}
+        ${v.party ? '<span class="badge big">파티</span>' : ""}
         ${v.licensed ? "" : '<span class="badge unlic">인허가 미매칭</span>'}
         ${v.naver_ok ? "" : '<span class="badge unlic">네이버 미등록</span>'}
         <br>${v.phone ? `<a href="${telHref(v.phone)}" onclick="event.stopPropagation()">☎ ${v.phone}</a>` : "☎ —"}

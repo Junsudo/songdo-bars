@@ -70,3 +70,7 @@ Notes.
 - 2026-08-19 바·라운지 category removed wholesale (owner order, item 1).
 - 2026-08-20 Kakao classification made authoritative for kakao-matched venues; license 업태 exclusions apply only to unmatched/licensed-only entries (owner order).
 - 2026-08-19 Specialty small bars (wine/whisky/lounge/highball) fail the use case even when individually verified as real bars. Curation must test against the use case, not venue authenticity.
+
+## Party track (separate use case)
+
+Club members research PARTY venues (파티 조명, 뮤직바, 루프탑, 100-200명) — a different test than the dinner criteria above. Party candidates live in `PARTY_NOTES`/`PARTY_ONLY` in prep_map.py with member field notes, render as the violet "파티" category plus a "파티 후보만" toggle, and are hidden by default. Dinner criteria do NOT apply to them; member judgment governs. Added 2026-08-20 from the club chat shortlist (신더·다이어메이커 최종 후보, 탄트라 100명 실사 등).

@@ -85,6 +85,7 @@ GLOBAL_BAD = re.compile("베이커리|제과|급식|도시락|반찬|샐러드|�
 ALLOW = ("크라운호프", "앨리스피맥")
 def bad_v(v):
     c = v.get("naver_cat") or ""
+    if v.get("party"): return False  # 파티 트랙(멤버 실사)은 회식 카테고리 규칙 면제
     if v.get("uptae") in ("호프/통닭", "정종/대포집/소주방"): return False
     return bool(GLOBAL_BAD.search(c)) and not any(x in v["name"] for x in ALLOW)
 dropped = [v["name"] for v in data["venues"] if bad_v(v) or (v.get("cat") == "대형(200㎡+)" and BAD_CAT.search(v.get("naver_cat") or ""))]
@@ -93,8 +94,8 @@ if dropped: print(f"대형 트랙 네이버 분류 부적합 제거 {len(dropped
 
 # 카카오·네이버 어느 쪽에도 없는 항목 제거 — 실질 폐업 추정 (유저 지시)
 def has_kakao(v): return bool(v.get("kakao_url") or v.get("coord_src") == "kakao")
-ghosts = [v["name"] for v in data["venues"] if not has_kakao(v) and not v.get("naver_ok")]
-data["venues"] = [v for v in data["venues"] if has_kakao(v) or v.get("naver_ok")]
+ghosts = [v["name"] for v in data["venues"] if not has_kakao(v) and not v.get("naver_ok") and not v.get("party")]
+data["venues"] = [v for v in data["venues"] if has_kakao(v) or v.get("naver_ok") or v.get("party")]
 if ghosts: print(f"카카오·네이버 모두 부재 제거 {len(ghosts)}곳:", ", ".join(ghosts[:12]), "…" if len(ghosts) > 12 else "")
 
 json.dump(cache, open("data/naver_cache.json", "w"))
