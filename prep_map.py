@@ -163,11 +163,16 @@ def geocode(jibun):
     _geo_cache[ck] = res
     return res
 
-EXCLUDE_NAMES = {"제우스볼펍", "헌팅"}  # 볼링장·헌팅포차류 (유저 지시)
+EXCLUDE_NAMES = {"제우스볼펍", "헌팅",
+    # 유저가 지시한 영구 제외 상호 (재유입 차단 — naver_cat 패턴 의존 금지)
+    "바삭메밀뜰", "투플러스푸드", "다복이네", "봄설", "수제청국", "드림에프앤씨", "이터스", "동남집",
+    "용호동낙지", "으뜸착한낙지", "송쭈집", "수블라키아", "엉클인더키친", "밥상편지", "블루오션한식",
+    "주가코다리", "몰트하우스", "랍스터퍼블릭", "와인기대", "파르크드와인", "제이라운지", "1019", "데이롱",
+    "튜나펍", "쎄시봉", "쉐이크쉑", "다올앤펍", "스월링라운지", "스낵얌"}
 EXCLUDE_EXACT = {norm(x) for x in ["엘", "한일도", "대양주"]}  # 개별 제외 (유저 지시, 정확 일치 — '엘'이 더샵엘테라스 등 오폭 방지)
 def excluded_name(nm): return any(x in norm(nm) for x in EXCLUDE_NAMES) or norm(nm) in EXCLUDE_EXACT
 venues = {}; geocoded = 0; coord_fixes = []
-EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점", "라이브카페"}  # 감성주점=춤 허용(헌팅포차류)
+EXCLUDE_UPTAE = {"경양식", "식육(숯불구이)", "분식", "중국식", "뷔페식", "감성주점", "라이브카페", "외국음식전문점(인도,태국등)"}  # 감성주점=춤 허용(헌팅포차류)
 pubs = [r for r in songdo if r["업태구분명"] in PUB_TYPES]
 kakao_bars_lic = [r for r in songdo if r["관리번호"] in lic_kakao and r["업태구분명"] not in EXCLUDE_UPTAE]
 extra_lic = [r for r in songdo if norm(r["사업장명"]) in EXTRA_LIC_NORMS

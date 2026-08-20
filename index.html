@@ -199,7 +199,7 @@ function popupHtml(v) {
   if (v.phone) links.push(`<a href="${telHref(v.phone)}">☎ ${v.phone}</a>`);
   links.push(`<a href="${transitHref(v)}" target="_blank" rel="noopener">🚌 대중교통(실시간)</a>`);
   if (v.kakao_url) links.push(`<a href="${v.kakao_url}" target="_blank" rel="noopener">카카오맵</a>`);
-  links.push(`<a href="https://map.naver.com/p/search/${encodeURIComponent(v.name + " 송도")}" target="_blank" rel="noopener">네이버</a>`);
+  links.push(`<a href="https://map.naver.com/p/search/${encodeURIComponent(v.name)}" target="_blank" rel="noopener">네이버</a>`);
   return `<div class="pop-nm">${v.name}</div><div class="pop-cat">${v.cat}</div>${rows.join("")}<div class="pop-links">${links.join("")}</div>`;
 }
 D.venues.forEach((v, i) => {
