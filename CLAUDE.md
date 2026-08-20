@@ -21,6 +21,7 @@ Songdo bar map for university club dinners. Live: https://junsudo.github.io/song
 | 4 | `enrich_naver.py` | Naver presence/category + global category drops |
 | 5 | `crawl_seats.py` | Blog seat mentions (thin) |
 | 5b | `enrich_menus.py` | Official Kakao menus via place-api panel3 — needs `pf: web` header (curl 406 without it) |
+| 5c | `enrich_naver_menus.py` | Naver Place menus: search→entry/place id (name-context match) → m.place.naver.com/restaurant/{id}/menu/list `__APOLLO_STATE__` (mobile pages are curl-able with UA, unlike pcmap) |
 | 6 | `check_positions.py` | Reverse-geocode audit of every venue |
 
 `build_xlsx` logic lives inline in history; xlsx is generated from `data/map_data.js`, not from raw sources.

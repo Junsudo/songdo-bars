@@ -192,7 +192,8 @@ function popupHtml(v) {
   rows.push(`<div class="pop-kv">🚶 도보 <b>${v.walk_min ?? "-"}분</b>${v.walk_km ? ` (${v.walk_km}km)` : ""} · 🚕 택시 <b>${v.taxi_min ?? "-"}분</b>${v.taxi_fare ? " · 약 " + fmtFare(v.taxi_fare) : ""}</div>`);
   if (v.uptae) rows.push(`<div class="pop-kv">인허가 업태 <b>${v.uptae}</b>${v.multi_use ? " · 다중이용업소" : ""}</div>`);
   if (v.naver_cat) rows.push(`<div class="pop-kv">네이버 <b>${v.naver_cat}</b></div>`);
-  if (v.menus && v.menus.length) rows.push(`<div class="pop-kv">메뉴 <b>${v.menus.slice(0,3).join(" · ")}</b> <span style="color:var(--text-3)">(카카오)</span></div>`);
+  const mm = (v.menus && v.menus.length) ? [v.menus, "카카오"] : (v.menus_nv && v.menus_nv.length) ? [v.menus_nv, "네이버"] : null;
+  if (mm) rows.push(`<div class="pop-kv">메뉴 <b>${mm[0].slice(0,3).join(" · ")}</b> <span style="color:var(--text-3)">(${mm[1]})</span></div>`);
   rows.push(`<div class="pop-kv" style="margin-top:4px">${v.road || v.jibun}</div>`);
   if (!v.licensed) rows.push(`<div class="pop-kv" style="color:#8a8781">인허가 대장 미매칭 — 전화로 확인 필요</div>`);
   const links = [];
