@@ -33,7 +33,7 @@ Notes.
 | Source | Rule |
 |---|---|
 | License register (alive, Songdo-dong) | 업태 in {호프/통닭, 정종/대포집/소주방} |
-| Kakao FD6 `술집` category | If matched to an alive license — **Kakao classification governs**: 업태 exclusions below do NOT apply to Kakao-matched bars (owner order 2026-08-20). Named rejects, 나이트/클럽, 바·라운지 still apply |
+| Kakao FD6 `술집` category | If matched to an alive license — **Kakao classification governs**: 업태 exclusions below do NOT apply to Kakao-matched bars (owner order 2026-08-20). Named rejects, 나이트/클럽, 바·라운지, **감성주점 업태** still apply |
 | Kakao FD6 `치킨` category | Only if matched license ≥ 100㎡, or alias-verified (또봉이=브루엠) |
 | Curated allowlist | 앨리스피맥 (23-5, 84-2), 크라운호프 송도점 — pimac/hof only |
 
